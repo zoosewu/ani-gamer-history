@@ -68,9 +68,9 @@ const listenAdultButton = (pathname: string): Subscription => of(pathname)
     const time = new Date().getTime()
     const img = document.querySelector<HTMLElement>('img.data-img')
     const title = img?.getAttribute('alt') ?? ''
-    // const pictureUrl = img?.getAttribute('src') ?? ''
-    const pictureUrl = document.getElementById('video-container')?.getAttribute('data-video-poster') ?? ''
+    const episodePicUrl = img?.getAttribute('src') ?? ''
+    const animePicUrl = document.getElementById('video-container')?.getAttribute('data-video-poster') ?? ''
     const episode = document.querySelector('.playing a')?.innerHTML ?? ''
-    updateAnimeHistory(userId, { id, time, title, pictureUrl, episode })
+    updateAnimeHistory(userId, { id, time, title, episodePicUrl, animePicUrl, episode })
     updateEpisode(episode)
   })

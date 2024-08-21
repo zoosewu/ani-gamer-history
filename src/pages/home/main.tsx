@@ -14,7 +14,7 @@ export default (URL: URL): Subscription => of(URL)
     init(pathname)
   })
 
-const AnimeCard = ({ id, title, pictureUrl, episode }: Anime): JSX.Element => {
+const AnimeCard = ({ id, title, animePicUrl, episode }: Anime): JSX.Element => {
   return (
     <div
       className='continue-watch-container slick-slide slick-active'
@@ -37,12 +37,12 @@ const AnimeCard = ({ id, title, pictureUrl, episode }: Anime): JSX.Element => {
           <div style={{ pointerEvents: 'none' }}>
             <div
               className='img-bg-blur-bg'
-              style={{ backgroundImage: `url(${pictureUrl})` }}
+              style={{ backgroundImage: `url(${animePicUrl})` }}
             />
             <img
               className='card-img lazyloaded'
-              src={pictureUrl}
-              data-src={pictureUrl}
+              src={animePicUrl}
+              data-src={animePicUrl}
               alt={title}
             />
             <div className='line-gradient' />
@@ -88,13 +88,14 @@ const AnimeCard = ({ id, title, pictureUrl, episode }: Anime): JSX.Element => {
   )
 }
 const MainContainer = ({ histories }: { histories: Anime[] }): JSX.Element => {
-  const historiesDOM = histories.map(({ id, time, title, pictureUrl, episode }) => (
+  const historiesDOM = histories.map(({ id, time, title, episodePicUrl, animePicUrl, episode }) => (
     <AnimeCard
       key={title}
       id={id}
       time={time}
       title={title}
-      pictureUrl={pictureUrl}
+      episodePicUrl={episodePicUrl}
+      animePicUrl={animePicUrl}
       episode={episode}
     />
   ))

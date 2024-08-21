@@ -8,6 +8,7 @@ export interface Anime {
   id: string
   time: number
   title: string
-  pictureUrl: string
+  episodePicUrl: string
+  animePicUrl: string
   episode: string
 }

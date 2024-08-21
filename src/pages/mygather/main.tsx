@@ -15,12 +15,12 @@ export default (URL: URL): Subscription => of(URL)
     init(pathname)
   })
 
-const AnimeCard = ({ id, title, pictureUrl, episode }: Anime): JSX.Element => {
+const AnimeCard = ({ id, title, episodePicUrl, animePicUrl, episode }: Anime): JSX.Element => {
   return (
     <a href={'animeRef.php?sn=' + id} className='theme-list-main' data-gtm-category='我的動畫頁' data-gtm-event='點擊我的動畫卡片'>
       <div className='theme-img-block' style={{ pointerEvents: 'none' }}>
-        <div className='theme-img-bg' style={{ backgroundImage: `url('${pictureUrl}')` }} />
-        <img className='theme-img lazyloaded' src={pictureUrl} data-src={pictureUrl} alt={title} />
+        <div className='theme-img-bg' style={{ backgroundImage: `url('${episodePicUrl}')` }} />
+        <img className='theme-img lazyloaded' src={episodePicUrl} data-src={episodePicUrl} alt={title} />
 
         <div className='anime-label-block' />
       </div>
@@ -46,13 +46,14 @@ const MainContainer = ({ histories }: { histories: Anime[] }): JSX.Element => {
       <p style={{ width: 'max-content', padding: '0 10px' }}>{tab}</p>
     </a>
   ))
-  const historiesDOM = histories.map(({ id, time, title, pictureUrl, episode }) => (
+  const historiesDOM = histories.map(({ id, time, title, episodePicUrl, animePicUrl, episode }) => (
     <AnimeCard
       key={title}
       id={id}
       time={time}
       title={title}
-      pictureUrl={pictureUrl}
+      episodePicUrl={episodePicUrl}
+      animePicUrl={animePicUrl}
       episode={episode}
     />
   ))
