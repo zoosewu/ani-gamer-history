@@ -1,4 +1,4 @@
-import { observeOnMutation, updateAnimeHistory, log, globalVar, toArray, isNotNil } from '@/util'
+import { observeOnMutation, updateAnimeHistory, globalVar, toArray, isNotNil } from '@/util'
 import { of, map, filter, switchMap, from, delay, tap, fromEvent, Observable, Subscription } from 'rxjs'
 import fp from 'lodash/fp'
 let lastEpisode = '0'
@@ -14,14 +14,11 @@ export default (URL: URL): Subscription => of(URL)
 
 const updateCurrentEpisodeButtonStyle = (button: Element): void => {
   // button.style.color = "var(--anime-tertiary-color)";
-  log('updateCurrentEpisodeButtonStyle', button.parentElement?.classList.value)
   button.parentElement?.classList.add('saw')
-  log('updateCurrentEpisodeButtonStyle', button.parentElement?.classList.value)
   lastEpisode = button.innerHTML
 }
 
 const removeLastEpisodeButtonStyle = (button: Element): void => {
-  log('removeLastEpisodeButtonStyle', button.parentElement?.classList)
   button.parentElement?.classList.remove('saw')
   // button.style.color = "";
 }
@@ -31,7 +28,6 @@ const getEpisodeButton = (episode: string): Observable<Element> => from(document
 
 const getCurrentEpisodeButton = (pathname: string): Subscription => of(pathname)
   .pipe(
-    // tap((e) => log("1", e)),
     map(() => document.getElementsByClassName('user-id')[0]?.innerHTML),
     map((userId) => globalVar.animeHistory[userId]),
     filter(isNotNil),
@@ -60,8 +56,8 @@ const listenAdultButton = (pathname: string): Subscription => of(pathname)
     filter(isNotNil),
     map(toArray<NodeList, Node>),
     switchMap((e) => from(e)),
-    tap(log),
-    filter((node) => node.classList.value.includes('R18')),
+    map<Node, Element>(fp.identity),
+    filter((node) => node.className.includes('R18')),
     map(() => document.getElementById('adult')),
     filter(isNotNil),
     switchMap((element) => fromEvent(element, 'click'))

@@ -22,8 +22,6 @@ export const toArray = <T extends { values: () => IterableIterator<U> }, U> (arr
   isNotNil(arrayLike) ? [...arrayLike.values()] : []
 
 export const updateAnimeHistory = (userId: string, { id, time, title, pictureUrl, episode }: Anime): void => {
-  log('New History', { id, time, title, pictureUrl, episode })
-
   const histories = globalVar.animeHistory?.[userId]?.filter((anime) => anime.title !== title) ?? []
 
   const newHistories = [{ id, time, title, pictureUrl, episode }, ...histories]
@@ -31,5 +29,5 @@ export const updateAnimeHistory = (userId: string, { id, time, title, pictureUrl
   globalVar.animeHistory = { ...globalVar.animeHistory, [userId]: newHistories }
   GM_setValue('animeHistory', JSON.stringify(globalVar.animeHistory))
 
-  log('Updated History', globalVar.animeHistory)
+  log('Updated History', { id, time, title, pictureUrl, episode }, globalVar.animeHistory)
 }
