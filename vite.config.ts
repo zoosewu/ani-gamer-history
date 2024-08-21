@@ -22,6 +22,8 @@ export default defineConfig({
         author: 'zoosewu',
         match: ['https://ani.gamer.com.tw/*'],
         icon: 'https://i2.bahamut.com.tw/anime/logo.svg',
+        updateURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js', 
+        downloadURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js', 
       },
       build: {
         externalGlobals: {
