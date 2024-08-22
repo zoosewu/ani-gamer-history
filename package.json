@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "lint": "ts-standard",
     "//preversion": "npm test",
-    "version": "npm run build && git add -A dist",
+    "version": "npm run build",
     "postversion": "git push"
   },
   "dependencies": {
