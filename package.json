@@ -6,7 +6,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "lint": "ts-standard"
+    "lint": "ts-standard",
+    "//preversion": "npm test",
+    "version": "npm run build && git add -A dist",
+    "postversion": "git push"
   },
   "dependencies": {
     "lodash": "^4.17.21",
