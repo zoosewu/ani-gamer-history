@@ -22,7 +22,6 @@ interface AnimeCartPayload {
 }
 const AnimeCard = ({ userId, anime }: AnimeCartPayload): JSX.Element => {
   const { id, title, animePicUrl, episode } = anime
-  const redirectUrl = new URL(window.location.href).origin + `/animeVideo.php?sn=${id}`
   const dispatch = useDispatch()
   return (
     <div
