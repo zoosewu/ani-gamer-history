@@ -1,4 +1,4 @@
-export interface Global {
+export interface GlobalVar {
   animeHistory: AnimeHistory
 }
 export interface AnimeHistory {

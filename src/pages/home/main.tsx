@@ -4,6 +4,9 @@ import { filter, map, of, Subscription } from 'rxjs'
 import fp from 'lodash/fp'
 import { Anime } from '@/util.interface'
 import { globalVar, isNotNil } from '@/util'
+import { RootState, store } from '../redux/store'
+import { Provider, useDispatch, useSelector } from 'react-redux'
+import { removeAnime } from '../redux/animeHistorySlice'
 
 export default (URL: URL): Subscription => of(URL)
   .pipe(
@@ -13,15 +16,21 @@ export default (URL: URL): Subscription => of(URL)
   .subscribe((pathname) => {
     init(pathname)
   })
-
-const AnimeCard = ({ id, title, animePicUrl, episode }: Anime): JSX.Element => {
+interface AnimeCartPayload {
+  userId: string
+  anime: Anime
+}
+const AnimeCard = ({ userId, anime }: AnimeCartPayload): JSX.Element => {
+  const { id, title, animePicUrl, episode } = anime
+  const redirectUrl = new URL(window.location.href).origin + `/animeVideo.php?sn=${id}`
+  const dispatch = useDispatch()
   return (
     <div
       className='continue-watch-container slick-slide slick-active'
       data-video-sn={id}
       data-slick-index='3'
       aria-hidden='false'
-      style={{ width: '254px' }}
+      style={{ width: '250px', transition: '1s' }}
       tabIndex={-1}
       role='option'
       aria-describedby='slick-slide13'
@@ -29,10 +38,11 @@ const AnimeCard = ({ id, title, animePicUrl, episode }: Anime): JSX.Element => {
       <div className='continue-watch-card'>
         <a
           className='img-block'
-          href={'animeVideo.php?sn=' + id}
+          // href={'animeVideo.php?sn=' + id}
           data-gtm-category='首頁'
           data-gtm-event='點擊繼續觀看卡片'
           tabIndex={0}
+          style={{ pointerEvents: 'none' }}
         >
           <div style={{ pointerEvents: 'none' }}>
             <div
@@ -44,6 +54,8 @@ const AnimeCard = ({ id, title, animePicUrl, episode }: Anime): JSX.Element => {
               src={animePicUrl}
               data-src={animePicUrl}
               alt={title}
+              style={{ pointerEvents: 'auto' }}
+              onClick={() => (window.location.href = `animeVideo.php?sn=${id}`)}
             />
             <div className='line-gradient' />
             <i
@@ -51,6 +63,7 @@ const AnimeCard = ({ id, title, animePicUrl, episode }: Anime): JSX.Element => {
               data-gtm-category='首頁'
               data-gtm-event='點擊移除繼續觀看卡片'
               style={{ pointerEvents: 'auto' }}
+              onClick={() => dispatch(removeAnime({ userId, animeTitle: title }))}
             >close
             </i>
             <div className='img-progress-block'>
@@ -87,16 +100,18 @@ const AnimeCard = ({ id, title, animePicUrl, episode }: Anime): JSX.Element => {
     </div>
   )
 }
-const MainContainer = ({ histories }: { histories: Anime[] }): JSX.Element => {
-  const historiesDOM = histories.map(({ id, time, title, episodePicUrl, animePicUrl, episode }) => (
+
+interface MainContainerPayload {
+  userId: string
+}
+const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
+  const animeHistory = useSelector((state: RootState) => state.animeHistory)
+  const histories = animeHistory[userId]
+  const historiesDOM = histories.map((anime) => (
     <AnimeCard
-      key={title}
-      id={id}
-      time={time}
-      title={title}
-      episodePicUrl={episodePicUrl}
-      animePicUrl={animePicUrl}
-      episode={episode}
+      key={anime.title}
+      userId={userId}
+      anime={anime}
     />
   ))
   return (
@@ -125,12 +140,15 @@ const MainContainer = ({ histories }: { histories: Anime[] }): JSX.Element => {
 const init = (pathname: string): Subscription => of(pathname).pipe(
   map(() => document.getElementsByClassName('user-id')[0]?.innerHTML),
   filter(isNotNil),
-  map((userId) => globalVar.animeHistory[userId]),
-  filter(fp.negate(fp.isNil))
-).subscribe((histories) => {
+  filter((userId) => globalVar?.animeHistory?.[userId] != null)
+).subscribe((userId) => {
   const app = document.getElementById('blockContinueWatch') ?? document.getElementById('blockVideoInSeason')
   const container = document.createElement('div')
   app?.after(container)
   const root = ReactDOM.createRoot(container)
-  root.render(<MainContainer histories={histories} />)
+  root.render(
+    <Provider store={store}>
+      <MainContainer userId={userId} />
+    </Provider>
+  )
 })
