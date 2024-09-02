@@ -1,5 +1,6 @@
-import { observeOnMutation, updateAnimeHistory, globalVar, toArray, isNotNil } from '@/util'
+import { observeOnMutation, globalVar, toArray, isNotNil } from '@/util'
 import { of, map, filter, switchMap, from, delay, tap, fromEvent, Observable, Subscription } from 'rxjs'
+import { updateAnimeHistory } from './util'
 import fp from 'lodash/fp'
 let lastEpisode = '0'
 export default (URL: URL): Subscription => of(URL)
