@@ -1,5 +1,5 @@
-# 巴哈姆特動畫風觀看紀錄功能
-動畫風的觀看紀錄 90 天就會消滅了，為了記錄自己曾經看過的動畫而做了這個小套件，將觀看紀錄存在本機內。
+# 巴哈姆特動畫瘋觀看紀錄功能
+動畫瘋的觀看紀錄 90 天就會消滅了，為了記錄自己曾經看過的動畫而做了這個小套件，將觀看紀錄存在本機內。
 # 安裝方法
 1. 安裝[Tampermonkey](https://www.tampermonkey.net/)
 2. [點我安裝套件](https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js)
