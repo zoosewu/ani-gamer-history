@@ -1,5 +1,5 @@
 import { observeOnMutation, globalVar, toArray, isNotNil } from '@/util'
-import { of, map, filter, switchMap, from, delay, tap, fromEvent, Observable, Subscription } from 'rxjs'
+import { of, map, filter, switchMap, from, delay, tap, fromEvent, Observable, Subscription, interval, take } from 'rxjs'
 import { updateAnimeHistory } from './util'
 import fp from 'lodash/fp'
 let lastEpisode = '0'
@@ -48,7 +48,7 @@ const updateEpisode = (episode: string): Subscription => getEpisodeButton(lastEp
   )
   .subscribe(updateCurrentEpisodeButtonStyle)
 
-const listenAdultButton = (pathname: string): Subscription => of(pathname)
+const listenAdultButton$ = (pathname: string): Observable<unknown> => of(pathname)
   .pipe(
     map(() => document.getElementById('ani_video') as Node),
     switchMap(observeOnMutation({ childList: true })),
@@ -63,15 +63,25 @@ const listenAdultButton = (pathname: string): Subscription => of(pathname)
     filter(isNotNil),
     switchMap((element) => fromEvent(element, 'click'))
   )
+const listenAdultButton = (pathname: string): Subscription => listenAdultButton$(pathname)
+  .pipe(
+    switchMap(() => interval(500)),
+    map(() => document.getElementById('ani_video_html5_api') as HTMLVideoElement),
+    filter<HTMLVideoElement | undefined>((video) => video?.paused === false),
+    take(1)
+  )
   .subscribe(() => {
     const userId = document.getElementsByClassName('user-id')[0].innerHTML
     const id = new URL(document.URL).searchParams.get('sn') ?? ''
-    const time = new Date().getTime()
+    const timestamp = new Date().getTime()
     const img = document.querySelector<HTMLElement>('img.data-img')
     const title = img?.getAttribute('alt') ?? ''
     const episodePicUrl = img?.getAttribute('src') ?? ''
     const animePicUrl = document.getElementById('video-container')?.getAttribute('data-video-poster') ?? ''
     const episode = document.querySelector('.playing a')?.innerHTML ?? ''
-    updateAnimeHistory(userId, { id, time, title, episodePicUrl, animePicUrl, episode })
+    const video = document?.getElementById('ani_video_html5_api') as HTMLVideoElement
+    const videoWatchTime = video?.playbackRate
+    const videoTotalTime = video?.duration
+    updateAnimeHistory(userId, { id, timestamp: timestamp, title, episodePicUrl, animePicUrl, episode })
     updateEpisode(episode)
   })

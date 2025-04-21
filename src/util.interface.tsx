@@ -6,7 +6,7 @@ export interface AnimeHistory {
 }
 export interface Anime {
   id: string
-  time: number
+  timestamp: number
   title: string
   episodePicUrl: string
   animePicUrl: string

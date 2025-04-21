@@ -46,11 +46,11 @@ const MainContainer = ({ histories }: { histories: Anime[] }): JSX.Element => {
       <p style={{ width: 'max-content', padding: '0 10px' }}>{tab}</p>
     </a>
   ))
-  const historiesDOM = histories.map(({ id, time, title, episodePicUrl, animePicUrl, episode }) => (
+  const historiesDOM = histories.map(({ id, timestamp: time, title, episodePicUrl, animePicUrl, episode }) => (
     <AnimeCard
       key={title}
       id={id}
-      time={time}
+      timestamp={time}
       title={title}
       episodePicUrl={episodePicUrl}
       animePicUrl={animePicUrl}

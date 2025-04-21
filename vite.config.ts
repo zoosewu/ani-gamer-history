@@ -4,6 +4,8 @@ import monkey, { cdn, util } from 'vite-plugin-monkey';
 import path from 'path';
 import AutoImport from 'unplugin-auto-import/vite';
 import { fileURLToPath } from 'url';
+// @ts-ignore
+import pkg from './package.json';
 // https://vitejs.dev/config/
 export default defineConfig({
   server: { watch: { usePolling: true } },
@@ -17,13 +19,13 @@ export default defineConfig({
       userscript: {
         name: 'Ani Gamer History',
         namespace: 'https://github.com/zoosewu',
-        version: '0.1.0',
+        version: pkg.version,
         description: '把你的觀看紀錄永久存在電腦中',
         author: 'zoosewu',
         match: ['https://ani.gamer.com.tw/*'],
         icon: 'https://i2.bahamut.com.tw/anime/logo.svg',
-        updateURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js', 
-        downloadURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js', 
+        updateURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js',
+        downloadURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js',
       },
       build: {
         externalGlobals: {
