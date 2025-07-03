@@ -11,4 +11,8 @@ export interface Anime {
   episodePicUrl: string
   animePicUrl: string
   episode: string
+  videoWatchTime: number
+  videoTotalTime: number
+  removeTime?: number
+  isFavorite?: boolean
 }

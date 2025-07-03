@@ -1,0 +1,9 @@
+.continue-watch-area .continue-watch-list .continue-watch-card:hover .img-block .btn-favorite {
+  visibility: visible;
+  opacity: 1;
+  color: var(--text-on-primary);
+}
+
+.ani-gamer-history .btn-favorite {
+  opacity: 0;
+}

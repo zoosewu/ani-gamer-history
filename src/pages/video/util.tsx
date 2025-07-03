@@ -1,13 +1,13 @@
 import { GM_setValue } from '$'
 import { Anime } from '@/util.interface'
-import { globalVar, log } from '@/util'
-export const updateAnimeHistory = (userId: string, { id, timestamp: time, title, episodePicUrl, animePicUrl, episode }: Anime): void => {
-  const histories = globalVar.animeHistory?.[userId]?.filter((anime) => anime.title !== title) ?? []
+import { globalVar } from '@/util'
+export const updateAnimeHistory = (userId: string, { ...newAnimeData }: Anime): void => {
+  const histories = globalVar.animeHistory?.[userId]?.filter((anime) => anime.title !== newAnimeData.title) ?? []
 
-  const newHistories = [{ id, time, title, episodePicUrl, animePicUrl, episode }, ...histories]
+  const newHistories = [{ ...newAnimeData }, ...histories]
 
   globalVar.animeHistory = { ...globalVar.animeHistory, [userId]: newHistories }
+  
+  console.log('Updated History', { ...newAnimeData }, globalVar.animeHistory)
   GM_setValue('animeHistory', JSON.stringify(globalVar.animeHistory))
-
-  log('Updated History', { id, time, title, animePicUrl, episode }, globalVar.animeHistory)
 }
