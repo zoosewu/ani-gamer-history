@@ -52,7 +52,7 @@ const listenAdultButton$ = (pathname: string): Observable<unknown> => of(pathnam
   .pipe(
     switchMap(() => GetNodeObserver('#adult')),
     filter(isNotNil),
-    switchMap((element) => fromEvent(element, 'click')),
+    switchMap((element) => fromEvent(element, 'click'))
   )
 const listenAdultButton = (pathname: string): Subscription => listenAdultButton$(pathname)
   .pipe(

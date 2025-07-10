@@ -7,7 +7,7 @@ export const updateAnimeHistory = (userId: string, { ...newAnimeData }: Anime): 
   const newHistories = [{ ...newAnimeData }, ...histories]
 
   globalVar.animeHistory = { ...globalVar.animeHistory, [userId]: newHistories }
-  
+
   console.log('Updated History', { ...newAnimeData }, globalVar.animeHistory)
   GM_setValue('animeHistory', JSON.stringify(globalVar.animeHistory))
 }

@@ -26,7 +26,7 @@ export const animeHistorySlice = createSlice({
       const animeList = state[userId] ?? []
       const target = animeList.find(anime => anime.title === animeTitle)
       if (target !== undefined) {
-        target.isFavorite = !target.isFavorite
+        target.isFavorite = target.isFavorite == null
         console.log('Anime Favorite Toggled', { userId, animeTitle, isFavorite: target.isFavorite }, state[userId])
         GM_setValue('animeHistory', JSON.stringify(state))
       }
