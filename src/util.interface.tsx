@@ -6,9 +6,13 @@ export interface AnimeHistory {
 }
 export interface Anime {
   id: string
-  time: number
+  timestamp: number
   title: string
   episodePicUrl: string
   animePicUrl: string
   episode: string
+  videoWatchTime: number
+  videoTotalTime: number
+  removeTime?: number
+  isFavorite?: boolean
 }
