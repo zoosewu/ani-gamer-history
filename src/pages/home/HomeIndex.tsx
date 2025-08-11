@@ -28,8 +28,9 @@ const AnimeCard = ({ userId, anime: { id, title, episodePicUrl, animePicUrl, epi
   const handleClick = (): void => {
     window.location.href = `animeVideo.php?sn=${id}`
   }
+  const leftTime = videoTotalTime - videoWatchTime
   return (
-    <div className='continue-watch-card' style={{ maxWidth: '16%', transition: '1s', paddingBottom: 'unset', height: 'unset' }}>
+    <div className='continue-watch-card' style={{ transition: '1s', paddingBottom: 'unset', height: 'unset', minWidth: '100px' }}>
       <a className='img-block' data-gtm-category='首頁' data-gtm-event='點擊繼續觀看卡片' tabIndex={0}>
         <div style={{ pointerEvents: 'none' }}>
           <div className='img-bg-blur-bg is-next' style={{ backgroundImage: `url('${episodePicUrl}')`, visibility: 'hidden' }} />
@@ -61,11 +62,15 @@ const AnimeCard = ({ userId, anime: { id, title, episodePicUrl, animePicUrl, epi
               <img src='https://i2.bahamut.com.tw/anime/pic-tv.svg' alt='pic-tv' />
               <p className='episode-watched' data-episode={`第 ${episode} 集`}>第 {episode} 集</p>
             </div>
-            <p className='time-left' data-time={`剩餘 ${Math.floor((videoTotalTime - videoWatchTime) / 60)} 分`}>剩餘 {Math.floor((videoTotalTime - videoWatchTime) / 60)} 分</p>
+            {videoTotalTime > 0 && (
+              <p className='time-left' data-time={`剩餘 ${Math.floor(leftTime / 60)} 分`}>剩餘 {Math.floor(leftTime / 60)} 分</p>
+            )}
           </div>
-          <div className='progress-bar'>
-            <div className='progress' style={{ width: `${(videoWatchTime / videoTotalTime) * 100}%` }} data-progress={`${(videoWatchTime / videoTotalTime) * 100}`} />
-          </div>
+          {videoTotalTime > 0 && videoWatchTime > 0 && (
+            <div className='progress-bar'>
+              <div className='progress' style={{ width: `${(videoWatchTime / videoTotalTime) * 100}%` }} data-progress={`${(videoWatchTime / videoTotalTime) * 100}`} />
+            </div>)
+          }
         </div>
         <div className='content' style={{ pointerEvents: 'none' }}>
           <p className='anime-name'>
@@ -102,14 +107,12 @@ const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
       >
         <div aria-live='polite' className='slick-list draggable'>
           <div
-            className='slick-track'
             style={{
               opacity: '1',
               width: '100%',
               transform: 'translate3d(0px, 0px, 0px)',
-              height: (176 * Math.ceil(sorted.length / 6)).toString() + 'px',
-              display: 'flex',
-              flexDirection: 'row',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(6, 1fr)',
               gap: '16px',
               transition: '1s'
             }}
