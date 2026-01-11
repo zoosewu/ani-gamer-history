@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "ani-gamer-history",
+			"path": "."
+		}
+	],
+  "settings": {
+    "editor.defaultFormatter": "standard.vscode-standard",
+    "standard.engine": "ts-standard",
+    "standard.autoFixOnSave": true
+  }
+}

@@ -14,14 +14,14 @@ export default (URL: URL): Subscription => of(URL)
   })
 
 const updateCurrentEpisodeButtonStyle = (button: Element): void => {
-  // button.style.color = "var(--anime-tertiary-color)";
-  button.parentElement?.classList.add('saw')
+  button.parentElement?.classList.add('saw-custom')
+  console.log('Updated episode button style', button)
   lastEpisode = button.innerHTML
 }
 
 const removeLastEpisodeButtonStyle = (button: Element): void => {
-  button.parentElement?.classList.remove('saw')
-  // button.style.color = "";
+  button.parentElement?.classList.remove('saw-custom')
+  console.log('Removed episode button style', button)
 }
 
 const getEpisodeButton = (episode: string): Observable<Element> => from(document.querySelectorAll('.season a'))
@@ -41,18 +41,20 @@ const getCurrentEpisodeButton = (pathname: string): Subscription => of(pathname)
   )
   .subscribe(updateCurrentEpisodeButtonStyle)
 
-const updateEpisode = (episode: string): Subscription => getEpisodeButton(lastEpisode)
+const updateEpisodeButton = (episode: string): Subscription => getEpisodeButton(lastEpisode)
   .pipe(
     tap(removeLastEpisodeButtonStyle),
     switchMap(() => getEpisodeButton(episode))
   )
   .subscribe(updateCurrentEpisodeButtonStyle)
 
-const listenAdultButton$ = (pathname: string): Observable<unknown> => of(pathname)
+const listenAdultButton$ = (pathname: string): Observable<Element> => of(pathname)
   .pipe(
-    switchMap(() => GetNodeObserver('#adult')),
+    switchMap(() => GetNodeObserver('body')),
     filter(isNotNil),
-    switchMap((element) => fromEvent(element, 'click'))
+    switchMap((container) => fromEvent<MouseEvent>(container, 'click')),
+    filter((event) => (event.target as Element)?.id === 'adult' || (event.target as Element)?.closest('#adult') != null),
+    map((event) => event.target as Element)
   )
 const listenAdultButton = (pathname: string): Subscription => listenAdultButton$(pathname)
   .pipe(
@@ -63,22 +65,31 @@ const listenAdultButton = (pathname: string): Subscription => listenAdultButton$
   )
   .subscribe(() => {
     const userId = document.getElementsByClassName('user-id')[0].innerHTML
-    const id = new URL(document.URL).searchParams.get('sn') ?? ''
-    const timestamp = new Date().getTime()
-    const img = document.querySelector<HTMLElement>('img.data-img')
-    const title = img?.getAttribute('alt') ?? ''
-    const episodePicUrl = img?.getAttribute('src') ?? ''
-    const animePicUrl = document.getElementById('video-container')?.getAttribute('data-video-poster') ?? ''
-    const episode = document.querySelector('.playing a')?.innerHTML ?? '1'
-    const video = document?.getElementById('ani_video_html5_api') as HTMLVideoElement
-    const videoWatchTime = video?.currentTime ?? 0
-    const videoTotalTime = video?.duration
+    let lastEpisode = getAnimeStatus().episode
     setInterval(() => {
-      if (video?.currentTime !== videoWatchTime) {
-        const videoWatchTime = video?.currentTime
-        updateAnimeHistory(userId, { id, timestamp, title, episodePicUrl, animePicUrl, episode, videoWatchTime, videoTotalTime })
+      const video = document?.getElementById('ani_video_html5_api') as HTMLVideoElement
+      if (video?.paused !== false) return
+
+      const anineStatus = getAnimeStatus()
+      updateAnimeHistory(userId, anineStatus)
+      if (anineStatus.episode !== lastEpisode) {
+        console.log(`Episode changed to ${anineStatus.episode} from ${lastEpisode}`)
+        lastEpisode = anineStatus.episode
+        updateEpisodeButton(lastEpisode)
       }
     }, 1000)
-    updateAnimeHistory(userId, { id, timestamp, title, episodePicUrl, animePicUrl, episode, videoWatchTime, videoTotalTime })
-    updateEpisode(episode)
   })
+
+const getAnimeStatus = () => {
+  const id = new URL(document.URL).searchParams.get('sn') ?? ''
+  const timestamp = new Date().getTime()
+  const img = document.querySelector<HTMLElement>('img.data-img')
+  const title = img?.getAttribute('alt') ?? ''
+  const episodePicUrl = img?.getAttribute('src') ?? ''
+  const animePicUrl = document.getElementById('video-container')?.getAttribute('data-video-poster') ?? ''
+  const episode = document.querySelector('.playing a')?.innerHTML ?? '1'
+  const video = document?.getElementById('ani_video_html5_api') as HTMLVideoElement
+  const videoWatchTime = video?.currentTime ?? 0
+  const videoTotalTime = video?.duration
+  return { id, timestamp, title, episodePicUrl, animePicUrl, episode, videoWatchTime, videoTotalTime }
+}
