@@ -9,37 +9,9 @@ export default (URL: URL): Subscription => of(URL)
     filter(fp.eq('/animeVideo.php'))
   )
   .subscribe((pathname) => {
-    addCustomSawStyle()
     getCurrentEpisodeButton(pathname)
     listenAdultButton(pathname)
   })
-
-const addCustomSawStyle = (): void => {
-  const style = document.createElement('style')
-  style.innerHTML = `
-  .saw-custom {
-    border: 2px solid #9AFF8F;
-    border-radius: 8px;
-  }
-  .saw-custom:after {
-    background: #9AFF8F;
-    content: "最後觀看";
-    width: 53px;
-    font-size: 12px;
-    position: absolute;
-    color: rgba(var(--anime-white-rgb), 1);
-    padding: 2px;
-    left: -2px;
-    bottom: -2px;
-    border-radius: 3px;
-    overflow: hidden;
-    pointer-events: none;
-    z-index: 3;
-  }
-  `
-  document.head.appendChild(style)
-  console.log(style)
-}
 
 const updateCurrentEpisodeButtonStyle = (button: Element): void => {
   button.parentElement?.classList.add('saw-custom')
@@ -76,11 +48,13 @@ const updateEpisodeButton = (episode: string): Subscription => getEpisodeButton(
   )
   .subscribe(updateCurrentEpisodeButtonStyle)
 
-const listenAdultButton$ = (pathname: string): Observable<unknown> => of(pathname)
+const listenAdultButton$ = (pathname: string): Observable<Element> => of(pathname)
   .pipe(
-    switchMap(() => GetNodeObserver('#adult')),
+    switchMap(() => GetNodeObserver('body')),
     filter(isNotNil),
-    switchMap((element) => fromEvent(element, 'click'))
+    switchMap((container) => fromEvent<MouseEvent>(container, 'click')),
+    filter((event) => (event.target as Element)?.id === 'adult' || (event.target as Element)?.closest('#adult') != null),
+    map((event) => event.target as Element)
   )
 const listenAdultButton = (pathname: string): Subscription => listenAdultButton$(pathname)
   .pipe(

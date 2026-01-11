@@ -1,0 +1,20 @@
+  .saw-custom {
+    border: 2px solid #9AFF8F;
+    border-radius: 8px;
+  }
+
+  .saw-custom:after {
+    background: #9AFF8F;
+    content: "最後觀看";
+    width: 53px;
+    font-size: 12px;
+    position: absolute;
+    color: rgba(var(--anime-white-rgb), 1);
+    padding: 2px;
+    left: -2px;
+    bottom: -2px;
+    border-radius: 3px;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 3;
+  }

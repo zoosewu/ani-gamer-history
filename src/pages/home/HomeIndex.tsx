@@ -28,7 +28,7 @@ const AnimeCard = ({ userId, anime: { id, title, episodePicUrl, animePicUrl, epi
   const handleClick = (): void => {
     window.location.href = `animeVideo.php?sn=${id}`
   }
-  const leftTime = videoTotalTime - videoWatchTime
+  const leftMinutes = Math.max(Math.floor((videoTotalTime - videoWatchTime) / 60), 0)
   return (
     <div className='continue-watch-card' style={{ transition: '1s', paddingBottom: 'unset', height: 'unset', minWidth: '100px' }}>
       <a className='img-block' data-gtm-category='首頁' data-gtm-event='點擊繼續觀看卡片' tabIndex={0}>
@@ -63,7 +63,7 @@ const AnimeCard = ({ userId, anime: { id, title, episodePicUrl, animePicUrl, epi
               <p className='episode-watched' data-episode={`第 ${episode} 集`}>第 {episode} 集</p>
             </div>
             {videoTotalTime > 0 && (
-              <p className='time-left' data-time={`剩餘 ${Math.floor(leftTime / 60)} 分`}>剩餘 {Math.floor(leftTime / 60)} 分</p>
+              <p className='time-left' data-time={`剩餘 ${leftMinutes} 分`}>剩餘 {leftMinutes} 分</p>
             )}
           </div>
           {videoTotalTime > 0 && videoWatchTime > 0 && (
