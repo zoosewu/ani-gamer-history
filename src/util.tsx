@@ -1,9 +1,4 @@
-import { GM_getValue } from '$'
 import { Observable, Subject } from 'rxjs'
-import { GlobalVar } from './util.interface'
-export const globalVar: GlobalVar = {
-  animeHistory: JSON.parse(GM_getValue('animeHistory', '{}'))
-}
 
 // get Element by selector and return an Observable, if the element is not found, it will observe mutations on the document body until the element is found
 export const GetNodeObserver = (selector: string): Observable<Node | null> => {

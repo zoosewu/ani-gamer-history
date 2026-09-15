@@ -1,40 +1,75 @@
-import { GM_setValue } from '$'
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice, current } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { globalVar } from '@/util'
-import { AnimeHistory } from '@/util.interface'
-const initialState: AnimeHistory = globalVar.animeHistory
+import { Anime, AnimeHistory } from '@/history/types'
+import { mergeHistory as merge, normalizeAnime } from '@/history/merge'
+import { readLocalHistory } from '@/history/localStore'
+
+export interface RecordWatchPayload {
+  userId: string
+  anime: Anime
+  // 開始觀看或換集時為 true；播放中每秒更新進度時為 false
+  isStart: boolean
+}
+
+interface AnimeTitlePayload {
+  userId: string
+  animeTitle: string
+}
+
+type TimedPayload = AnimeTitlePayload & { time: number }
+
+const withTime = (payload: AnimeTitlePayload): { payload: TimedPayload } => ({ payload: { ...payload, time: Date.now() } })
+
+const updateAnime = (state: AnimeHistory, { userId, animeTitle }: AnimeTitlePayload, update: (anime: Anime) => Anime): void => {
+  const list = state[userId] ?? []
+  const index = list.findIndex((anime) => anime.title === animeTitle)
+  if (index === -1) return
+  list[index] = normalizeAnime(update(list[index]))
+}
+
+const initialState: AnimeHistory = readLocalHistory()
 
 export const animeHistorySlice = createSlice({
-  name: 'counter',
+  name: 'animeHistory',
   initialState,
   reducers: {
-    // 修改 delete 為標記 removeTime
-    removeAnime: (state, action: PayloadAction<{ userId: string, animeTitle: string }>) => {
-      const { userId, animeTitle } = action.payload
-      const animeList = state[userId] ?? []
-      const target = animeList.find(anime => anime.title === animeTitle)
-      if (target !== undefined) {
-        target.removeTime = Date.now()
-      }
-      console.log('Anime Removed', { userId, animeTitle }, state[userId])
-      GM_setValue('animeHistory', JSON.stringify(state))
+    // 更新觀看進度時保留最愛與刪除狀態
+    recordWatch: (state, action: PayloadAction<RecordWatchPayload>) => {
+      const { userId, anime } = action.payload
+      if (anime.title === '') return
+      const list = state[userId] ?? []
+      const existing = list.find((item) => item.title === anime.title)
+      const record = normalizeAnime({
+        ...anime,
+        isFavorite: existing?.isFavorite,
+        favoriteTime: existing?.favoriteTime,
+        removeTime: existing?.removeTime
+      })
+      state[userId] = [record, ...list.filter((item) => item.title !== anime.title)]
     },
-    // 新增最愛切換功能
-    toggleFavorite: (state, action: PayloadAction<{ userId: string, animeTitle: string }>) => {
-      const { userId, animeTitle } = action.payload
-      const animeList = state[userId] ?? []
-      const target = animeList.find(anime => anime.title === animeTitle)
-      if (target !== undefined) {
-        target.isFavorite = target.isFavorite == null
-        console.log('Anime Favorite Toggled', { userId, animeTitle, isFavorite: target.isFavorite }, state[userId])
-        GM_setValue('animeHistory', JSON.stringify(state))
-      }
+    // 標記 removeTime，而不是真的刪除，讓同步時能傳遞刪除
+    removeAnime: {
+      reducer: (state, action: PayloadAction<TimedPayload>) => {
+        updateAnime(state, action.payload, (anime) => ({ ...anime, removeTime: action.payload.time }))
+      },
+      prepare: withTime
+    },
+    toggleFavorite: {
+      reducer: (state, action: PayloadAction<TimedPayload>) => {
+        updateAnime(state, action.payload, (anime) => ({ ...anime, isFavorite: !(anime.isFavorite ?? false), favoriteTime: action.payload.time }))
+      },
+      prepare: withTime
+    },
+    // 合併其他分頁、雲端或匯入的資料；內容沒變時維持原本的 state
+    mergeHistory: (state, action: PayloadAction<AnimeHistory>) => {
+      const base = current(state)
+      const merged = merge(base, action.payload)
+      if (JSON.stringify(merged) === JSON.stringify(base)) return
+      return merged
     }
   }
 })
 
-// Action creators are generated for each case reducer function
-export const { removeAnime, toggleFavorite } = animeHistorySlice.actions
+export const { recordWatch, removeAnime, toggleFavorite, mergeHistory } = animeHistorySlice.actions
 
 export default animeHistorySlice.reducer

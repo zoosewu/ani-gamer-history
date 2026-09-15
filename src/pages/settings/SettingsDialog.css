@@ -1,0 +1,340 @@
+.agh-dialog {
+  --agh-bg: #ffffff;
+  --agh-subtle-bg: #f4f5f7;
+  --agh-hover-bg: rgba(0, 0, 0, 0.06);
+  --agh-border: #e3e5e8;
+  --agh-text: #1f2328;
+  --agh-muted: #656d76;
+  --agh-primary: #00a1d6;
+  --agh-on-primary: #ffffff;
+  --agh-danger: #cf222e;
+  --agh-ok-bg: #e7f6ec;
+  --agh-ok-text: #1a7f37;
+  --agh-error-bg: #fdeceb;
+  --agh-error-text: #b42318;
+  box-sizing: border-box;
+  width: min(760px, calc(100vw - 32px));
+  height: min(560px, calc(100vh - 32px));
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--agh-bg);
+  color: var(--agh-text);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: left;
+  overflow: hidden;
+}
+
+.agh-dialog *,
+.agh-dialog *::before,
+.agh-dialog *::after {
+  box-sizing: border-box;
+}
+
+/*
+ * 巴哈全站 CSS 直接設定了元素樣式（section 的 padding-top: 24px、h3 / p 的 line-height 等）。
+ * :where() 讓這段 specificity 與單一 class 相同，後面的 agh- 樣式會覆蓋它。
+ */
+.agh-dialog :where(section, header, nav, div, h3, h4, p, span, li, input) {
+  position: static;
+  width: auto;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.agh-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.agh-layout {
+  display: flex;
+  height: 100%;
+}
+
+.agh-nav {
+  flex: 0 0 176px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 12px;
+  background: var(--agh-subtle-bg);
+  border-right: 1px solid var(--agh-border);
+}
+
+.agh-nav-title {
+  margin: 0 8px 12px;
+  color: var(--agh-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.agh-nav-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--agh-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.agh-nav-item:hover {
+  background: var(--agh-hover-bg);
+}
+
+.agh-nav-item.is-active {
+  background: var(--agh-bg);
+  color: var(--agh-primary);
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.agh-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.agh-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 14px 24px;
+  border-bottom: 1px solid var(--agh-border);
+}
+
+.agh-title {
+  margin: 0;
+  color: var(--agh-text);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.agh-close {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--agh-muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.agh-close:hover {
+  background: var(--agh-hover-bg);
+}
+
+.agh-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px 0;
+  overflow-y: auto;
+}
+
+/* 可捲動的 flex 容器不會保留 padding-bottom，用偽元素補上底部間距 */
+.agh-page::after {
+  content: '';
+  flex: none;
+  height: 4px;
+}
+
+.agh-summary {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px 20px;
+  margin: 0;
+}
+
+.agh-summary dt {
+  color: var(--agh-muted);
+}
+
+.agh-summary dd {
+  margin: 0;
+}
+
+.agh-hint {
+  margin: 0;
+  color: var(--agh-muted);
+  font-size: 13px;
+}
+
+.agh-message {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  white-space: pre-line;
+}
+
+.agh-message.is-ok {
+  background: var(--agh-ok-bg);
+  color: var(--agh-ok-text);
+}
+
+.agh-message.is-error {
+  background: var(--agh-error-bg);
+  color: var(--agh-error-text);
+}
+
+.agh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agh-button {
+  padding: 8px 16px;
+  border: 1px solid var(--agh-border);
+  border-radius: 8px;
+  background: var(--agh-bg);
+  color: var(--agh-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.agh-button:hover:not(:disabled) {
+  background: var(--agh-subtle-bg);
+}
+
+.agh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.agh-button.is-primary {
+  border-color: var(--agh-primary);
+  background: var(--agh-primary);
+  color: var(--agh-on-primary);
+}
+
+.agh-button.is-primary:hover:not(:disabled) {
+  background: var(--agh-primary);
+  filter: brightness(0.93);
+}
+
+.agh-button.is-danger {
+  border-color: var(--agh-danger);
+  color: var(--agh-danger);
+}
+
+.agh-link {
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--agh-primary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.agh-button:focus-visible,
+.agh-nav-item:focus-visible,
+.agh-close:focus-visible,
+.agh-link:focus-visible {
+  outline: 2px solid var(--agh-primary);
+  outline-offset: 2px;
+}
+
+.agh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.agh-field-label {
+  color: var(--agh-text);
+  font-weight: 600;
+}
+
+.agh-required {
+  margin-left: 2px;
+  color: var(--agh-danger);
+  font-style: normal;
+}
+
+.agh-input {
+  width: 100%;
+  height: auto;
+  padding: 8px 10px;
+  border: 1px solid var(--agh-border);
+  border-radius: 8px;
+  background: var(--agh-bg);
+  color: var(--agh-text);
+  font: inherit;
+}
+
+.agh-input:focus {
+  border-color: var(--agh-primary);
+  outline: 1px solid var(--agh-primary);
+}
+
+.agh-steps {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--agh-subtle-bg);
+}
+
+.agh-steps summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.agh-steps ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  list-style: decimal;
+}
+
+.agh-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.agh-section-title {
+  margin: 0;
+  color: var(--agh-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+@media (max-width: 600px) {
+  .agh-layout {
+    flex-direction: column;
+  }
+
+  .agh-nav {
+    flex: none;
+    flex-direction: row;
+    padding: 8px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--agh-border);
+  }
+
+  .agh-nav-title {
+    display: none;
+  }
+
+  .agh-nav-item {
+    width: auto;
+    white-space: nowrap;
+  }
+}

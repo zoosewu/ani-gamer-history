@@ -23,6 +23,7 @@ export default defineConfig({
         description: '把你的觀看紀錄永久存在電腦中',
         author: 'zoosewu',
         match: ['https://ani.gamer.com.tw/*'],
+        connect: ['api.github.com'],
         icon: 'https://i2.bahamut.com.tw/anime/logo.svg',
         updateURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js',
         downloadURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js',

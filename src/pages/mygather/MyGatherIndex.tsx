@@ -2,8 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { filter, map, of, Subscription } from 'rxjs'
 import fp from 'lodash/fp'
-import { globalVar, isNotNil } from '@/util'
-import { Anime } from '@/util.interface'
+import { isNotNil } from '@/util'
+import { Anime } from '@/history/types'
+import { store } from '../redux/store'
 
 export default (URL: URL): Subscription => of(URL)
   .pipe(
@@ -99,7 +100,7 @@ const MainContainer = ({ histories }: { histories: Anime[] }): JSX.Element => {
 const init = (pathname: string): Subscription => of(pathname).pipe(
   map(() => document.getElementsByClassName('user-id')[0]?.innerHTML),
   filter(isNotNil),
-  map((userId) => globalVar.animeHistory[userId]),
+  map((userId) => store.getState().animeHistory[userId]),
   filter(fp.negate(fp.isNil))
 ).subscribe((histories) => {
   const app = document.getElementsByClassName('theme-title-block')?.item(0)

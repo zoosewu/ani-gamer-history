@@ -9,7 +9,8 @@
     "lint": "ts-standard",
     "//preversion": "npm test",
     "version": "npm run build",
-    "postversion": "git push"
+    "postversion": "git push",
+    "test": "vitest run"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.7",
@@ -29,6 +30,15 @@
     "typescript": "^5.4.5",
     "unplugin-auto-import": "^0.18.2",
     "vite": "^5.2.12",
-    "vite-plugin-monkey": "^4.0.0"
+    "vite-plugin-monkey": "^4.0.0",
+    "vitest": "^3.2.7"
+  },
+  "ts-standard": {
+    "ignore": [
+      "auto-imports.d.ts",
+      "vite.config.ts",
+      "vitest.config.ts",
+      "dist"
+    ]
   }
 }

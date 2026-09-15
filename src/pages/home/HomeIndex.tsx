@@ -2,11 +2,16 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { filter, map, of, Subscription } from 'rxjs'
 import fp from 'lodash/fp'
-import { Anime } from '@/util.interface'
-import { globalVar, isNotNil } from '@/util'
-import { RootState, store } from '../redux/store'
-import { Provider, useDispatch, useSelector } from 'react-redux'
+import { Anime } from '@/history/types'
+import { isRemoved } from '@/history/merge'
+import { isNotNil } from '@/util'
+import { store } from '../redux/store'
+import { Provider } from 'react-redux'
+import { useAppDispatch, useAppSelector } from '../redux/hooks'
 import { removeAnime, toggleFavorite } from '../redux/animeHistorySlice'
+import { openSettings } from '../settings/openSettings'
+import { SyncIndicator } from '../settings/SyncIndicator'
+import { requestCloudSync } from '@/sync/syncService'
 import './HomeIndex.css'
 
 export default (URL: URL): Subscription => of(URL)
@@ -23,7 +28,7 @@ interface AnimeCartPayload {
 }
 
 const AnimeCard = ({ userId, anime: { id, title, episodePicUrl, animePicUrl, episode, videoWatchTime, videoTotalTime, removeTime, isFavorite } }: AnimeCartPayload): JSX.Element => {
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
   // goto href={`animeVideo.php?sn=${id}`}
   const handleClick = (): void => {
     window.location.href = `animeVideo.php?sn=${id}`
@@ -69,8 +74,8 @@ const AnimeCard = ({ userId, anime: { id, title, episodePicUrl, animePicUrl, epi
           {videoTotalTime > 0 && videoWatchTime > 0 && (
             <div className='progress-bar'>
               <div className='progress' style={{ width: `${(videoWatchTime / videoTotalTime) * 100}%` }} data-progress={`${(videoWatchTime / videoTotalTime) * 100}`} />
-            </div>)
-          }
+            </div>
+          )}
         </div>
         <div className='content' style={{ pointerEvents: 'none' }}>
           <p className='anime-name'>
@@ -86,11 +91,11 @@ interface MainContainerPayload {
   userId: string
 }
 const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
-  const animeHistory = useSelector((state: RootState) => state.animeHistory)
+  const animeHistory = useAppSelector((state) => state.animeHistory)
   const histories = animeHistory[userId] ?? []
-  const filtered = histories.filter(anime => anime.removeTime == null)
-  const favs = filtered.filter(a => a.isFavorite).sort((a, b) => b.timestamp - a.timestamp)
-  const others = filtered.filter(a => a.isFavorite == null).sort((a, b) => b.timestamp - a.timestamp)
+  const filtered = histories.filter(anime => !isRemoved(anime))
+  const favs = filtered.filter(a => a.isFavorite === true).sort((a, b) => b.timestamp - a.timestamp)
+  const others = filtered.filter(a => a.isFavorite !== true).sort((a, b) => b.timestamp - a.timestamp)
   const sorted = [...favs, ...others]
 
   const Histories = sorted.map(anime => <AnimeCard key={anime.title} userId={userId} anime={anime} />)
@@ -99,8 +104,15 @@ const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
       <div className='theme-title-block'>
         <div className='watch-more-block'>
           <h1 className='theme-title'>本機歷史紀錄</h1>
+          <div className='agh-title-tools'>
+            <SyncIndicator />
+            <button type='button' className='agh-gear' title='同步設定' aria-label='同步設定' onClick={() => openSettings()}>
+              <i className='material-icons-round'>settings</i>
+            </button>
+          </div>
         </div>
       </div>
+      {sorted.length === 0 && <p className='agh-empty'>尚無紀錄</p>}
       <div
         id='continue-watch'
         className='continue-watch-list slick-initialized slick-slider'
@@ -126,8 +138,7 @@ const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
 }
 const init = (pathname: string): Subscription => of(pathname).pipe(
   map(() => document.getElementsByClassName('user-id')[0]?.innerHTML),
-  filter(isNotNil),
-  filter((userId) => globalVar?.animeHistory?.[userId] != null)
+  filter(isNotNil)
 ).subscribe((userId) => {
   const app = document.getElementById('blockContinueWatch') ?? document.getElementById('blockVideoInSeason')
   const container = document.createElement('div')
@@ -138,4 +149,6 @@ const init = (pathname: string): Subscription => of(pathname).pipe(
       <MainContainer userId={userId} />
     </Provider>
   )
+  // 要顯示列表時，先從雲端取得最新紀錄
+  void requestCloudSync('display')
 })
