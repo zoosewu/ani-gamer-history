@@ -7,3 +7,44 @@
 .ani-gamer-history .btn-favorite {
   opacity: 0;
 }
+
+/* 巴哈的 .watch-more-block 是 align-items: flex-end，標題（34px 行高）與工具列高度不同時會底部對齊，改為垂直置中 */
+.ani-gamer-history .agh-title-tools {
+  display: inline-flex;
+  align-self: center;
+  align-items: center;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.ani-gamer-history .agh-sync-indicator {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.ani-gamer-history .agh-gear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: 200ms;
+}
+
+.ani-gamer-history .agh-gear:hover,
+.ani-gamer-history .agh-gear:focus-visible {
+  background: rgba(128, 128, 128, 0.15);
+  opacity: 1;
+}
+
+.ani-gamer-history .agh-empty {
+  margin: 8px 0 16px;
+  opacity: 0.7;
+}

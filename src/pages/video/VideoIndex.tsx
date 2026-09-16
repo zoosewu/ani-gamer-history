@@ -1,7 +1,9 @@
-import { GetNodeObserver, globalVar, isNotNil } from '@/util'
+import { GetNodeObserver, isNotNil } from '@/util'
 import { of, map, filter, switchMap, from, delay, tap, fromEvent, Observable, Subscription, interval, take } from 'rxjs'
-import { updateAnimeHistory } from './util'
 import fp from 'lodash/fp'
+import { Anime } from '@/history/types'
+import { store } from '../redux/store'
+import { recordWatch } from '../redux/animeHistorySlice'
 let lastEpisode = '0'
 export default (URL: URL): Subscription => of(URL)
   .pipe(
@@ -30,7 +32,7 @@ const getEpisodeButton = (episode: string): Observable<Element> => from(document
 const getCurrentEpisodeButton = (pathname: string): Subscription => of(pathname)
   .pipe(
     map(() => document.getElementsByClassName('user-id')[0]?.innerHTML),
-    map((userId) => globalVar.animeHistory[userId]),
+    map((userId) => store.getState().animeHistory[userId]),
     filter(isNotNil),
     switchMap((histories) => from(histories)),
     filter(history => history.title === document.querySelector('img.data-img')?.getAttribute('alt')),
@@ -66,13 +68,16 @@ const listenAdultButton = (pathname: string): Subscription => listenAdultButton$
   .subscribe(() => {
     const userId = document.getElementsByClassName('user-id')[0].innerHTML
     let lastEpisode = getAnimeStatus().episode
+    let started = false
     setInterval(() => {
-      const video = document?.getElementById('ani_video_html5_api') as HTMLVideoElement
-      if (video?.paused !== false) return
+      const video = document.getElementById('ani_video_html5_api') as HTMLVideoElement | null
+      if (video === null || video.paused) return
 
       const anineStatus = getAnimeStatus()
-      updateAnimeHistory(userId, anineStatus)
-      if (anineStatus.episode !== lastEpisode) {
+      const episodeChanged = anineStatus.episode !== lastEpisode
+      store.dispatch(recordWatch({ userId, anime: anineStatus, isStart: !started || episodeChanged }))
+      started = true
+      if (episodeChanged) {
         console.log(`Episode changed to ${anineStatus.episode} from ${lastEpisode}`)
         lastEpisode = anineStatus.episode
         updateEpisodeButton(lastEpisode)
@@ -80,7 +85,7 @@ const listenAdultButton = (pathname: string): Subscription => listenAdultButton$
     }, 1000)
   })
 
-const getAnimeStatus = () => {
+const getAnimeStatus = (): Anime => {
   const id = new URL(document.URL).searchParams.get('sn') ?? ''
   const timestamp = new Date().getTime()
   const img = document.querySelector<HTMLElement>('img.data-img')

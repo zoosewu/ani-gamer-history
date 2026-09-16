@@ -2,10 +2,18 @@ import { of, tap } from 'rxjs'
 import home from './pages/home/HomeIndex'
 import video from './pages/video/VideoIndex'
 import gather from './pages/mygather/MyGatherIndex'
-import { globalVar } from '@/util'
+import { store } from '@/pages/redux/store'
+import { setupHistoryPersistence } from '@/history/persistence'
+import { setupSyncPersistence } from '@/sync/syncPersistence'
+import { setupSyncTriggers } from '@/sync/triggers'
+import { setupMenu } from '@/sync/menu'
 import _ from 'lodash'
 _.noConflict() // necessary for import lodash
-console.log('Init ani-gamer-history', globalVar.animeHistory)
+setupHistoryPersistence()
+setupSyncPersistence()
+setupSyncTriggers()
+setupMenu()
+console.log('Init ani-gamer-history', store.getState().animeHistory)
 of(new URL(document.URL))
   .pipe(
     tap(gather), // Initialize MyGather page
