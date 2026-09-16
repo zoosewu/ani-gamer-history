@@ -1,7 +1,8 @@
 import { createSlice, current } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import { Anime, AnimeHistory } from '@/history/types'
+import { Anime, AnimeHistory, AnimeSource } from '@/history/types'
 import { mergeHistory as merge, normalizeAnime } from '@/history/merge'
+import { sourceOf } from '@/history/source'
 import { readLocalHistory } from '@/history/localStore'
 
 export interface RecordWatchPayload {
@@ -14,15 +15,17 @@ export interface RecordWatchPayload {
 interface AnimeTitlePayload {
   userId: string
   animeTitle: string
+  // 同名但不同來源是兩筆獨立的紀錄
+  source: AnimeSource
 }
 
 type TimedPayload = AnimeTitlePayload & { time: number }
 
 const withTime = (payload: AnimeTitlePayload): { payload: TimedPayload } => ({ payload: { ...payload, time: Date.now() } })
 
-const updateAnime = (state: AnimeHistory, { userId, animeTitle }: AnimeTitlePayload, update: (anime: Anime) => Anime): void => {
+const updateAnime = (state: AnimeHistory, { userId, animeTitle, source }: AnimeTitlePayload, update: (anime: Anime) => Anime): void => {
   const list = state[userId] ?? []
-  const index = list.findIndex((anime) => anime.title === animeTitle)
+  const index = list.findIndex((anime) => anime.title === animeTitle && sourceOf(anime) === source)
   if (index === -1) return
   list[index] = normalizeAnime(update(list[index]))
 }
@@ -38,14 +41,16 @@ export const animeHistorySlice = createSlice({
       const { userId, anime } = action.payload
       if (anime.title === '') return
       const list = state[userId] ?? []
-      const existing = list.find((item) => item.title === anime.title)
+      const source = sourceOf(anime)
+      const isSame = (item: Anime): boolean => item.title === anime.title && sourceOf(item) === source
+      const existing = list.find(isSame)
       const record = normalizeAnime({
         ...anime,
         isFavorite: existing?.isFavorite,
         favoriteTime: existing?.favoriteTime,
         removeTime: existing?.removeTime
       })
-      state[userId] = [record, ...list.filter((item) => item.title !== anime.title)]
+      state[userId] = [record, ...list.filter((item) => !isSame(item))]
     },
     // 標記 removeTime，而不是真的刪除，讓同步時能傳遞刪除
     removeAnime: {

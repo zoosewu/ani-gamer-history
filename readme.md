@@ -1,22 +1,28 @@
 # 巴哈姆特動畫瘋觀看紀錄功能
 動畫瘋的觀看紀錄 90 天就會消滅了，為了記錄自己曾經看過的動畫而做了這個小套件，將觀看紀錄存在本機內，也可以透過 GitHub Private Repository 在多台電腦之間同步。
+除了動畫瘋，也會記錄 [anime1](https://anime1.me/) 的觀看進度，兩邊的紀錄都顯示在動畫瘋首頁。
 # 安裝方法
 1. 安裝[Tampermonkey](https://www.tampermonkey.net/)
 2. [點我安裝套件](https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js)
 # 使用方法
 1. 紀錄動畫：在分級確認的地方點選同意的時候會將當下的動畫記錄起來
-2. 顯示上次觀看：在動畫頁面會顯示上次觀看，即便已經超過 90 天
+2. 顯示上次觀看：在動畫頁面的分集清單上，本機紀錄的那一集會有綠色角標，即便已經超過 90 天。這個標記和動畫瘋原本的「上次觀看」是分開的，兩邊一致或不一致都看得出來
 3. 顯示歷史紀錄：在首頁的本季新番下面會多一個本機歷史紀錄的列表，會從新到舊排序觀看紀錄。
 4. 移除歷史紀錄：在首頁的本機歷史紀錄動畫右上角可以移除觀看紀錄。(無法復原，請慎用)
 5. 最愛：在首頁的本機歷史紀錄動畫右上角可以加入最愛，最愛會排在列表最前面。
 6. 同步設定：點首頁「本機歷史紀錄」標題右邊的齒輪，或 Tampermonkey 選單的「開啟同步設定」。
+# anime1
+1. 在 anime1 播放影片時會自動記錄，和動畫瘋共用同一份資料，一起同步到雲端
+2. anime1 的文章與系列頁上，本機紀錄的那一集會有和動畫瘋相同樣式的綠色標記
+3. anime1 沒有會員系統，所以它的紀錄不綁定使用者：動畫瘋首頁**不論有沒有登入**都看得到
+4. 即使兩邊的動畫同名，也會分成兩筆各自獨立的紀錄（卡片右上角會標示來源）
 # 雲端同步（GitHub Private Repository）
 所有資料合併都在腳本內完成，不需要架設伺服器。
 1. 在 GitHub 建立一個 **Private** repository（例如 `ani-gamer-history-data`）。
 2. 到 Settings → Developer settings → Personal access tokens → Fine-grained tokens 建立 Token：
    - Repository access 選「Only select repositories」，只勾剛剛建立的 repository
    - Repository permissions → Contents 設為「Read and write」
-3. 打開同步設定的「雲端平台」頁，填入 Token 與 `owner/repo`，按「測試連線」確認後按「儲存並同步」。
+3. 打開同步設定的「雲端平台」頁，填入 Token 與 `owner/repo`，按「儲存並同步」（儲存前會自動檢查連線）。
 4. 其他電腦重複步驟 3。
 
 同步時機：
@@ -60,4 +66,5 @@ commit 訊息請使用 [Conventional Commits](https://www.conventionalcommits.or
 - [X] 匯入/匯出功能
 - [X] 設定頁面（同步設定）
 - [ ] 設定頁面可以啟用/關閉相關功能
+- [X] 同時追蹤 anime1
 - [ ] 其他同步平台

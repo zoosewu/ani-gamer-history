@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AdapterSettings, importAdapterSettings, TestResult } from '@/sync/adapter'
+import { AdapterSettings, FieldSpec, importAdapterSettings, TestResult } from '@/sync/adapter'
 import { readClipboard } from '@/sync/clipboard'
 import { cloudAdapters, findCloudAdapter } from '@/sync/cloudAdapters'
 import { decodeSettingsTransfer } from '@/sync/settingsTransfer'
@@ -47,6 +47,12 @@ const StatusPage = ({ onNavigate }: { onNavigate: (page: SettingsPage) => void }
   const sync = useAppSelector((state) => state.sync)
   const { settings, status, syncing } = sync
   const definition = findCloudAdapter(settings.adapterId)
+
+  const disconnect = (): void => {
+    if (!window.confirm('確定要中斷雲端同步嗎？\n會清除這個平台的設定與 Token；本機紀錄和雲端檔案都會保留。')) return
+    dispatch(syncDisconnected())
+  }
+
   return (
     <div className='agh-page'>
       <dl className='agh-summary'>
@@ -56,19 +62,23 @@ const StatusPage = ({ onNavigate }: { onNavigate: (page: SettingsPage) => void }
           {definition === undefined && <button type='button' className='agh-link' onClick={() => onNavigate('cloud')}>前往設定</button>}
         </dd>
         <dt>自動同步</dt>
-        <dd>{settings.autoSync ? '開啟' : '已暫停'}</dd>
+        <dd>
+          <label className='agh-toggle'>
+            <input type='checkbox' checked={settings.autoSync} onChange={(event) => { dispatch(autoSyncSet(event.target.checked)) }} />
+            <span className='agh-toggle-track' aria-hidden='true' />
+            <span>{settings.autoSync ? '開啟' : '已暫停'}</span>
+          </label>
+        </dd>
         <dt>同步狀態</dt>
         <dd>{describeSyncStatus(sync)}</dd>
       </dl>
       {!syncing && status.message !== '' && <Message result={{ ok: status.ok === true, message: status.message }} />}
       <p className='agh-hint'>開啟首頁時會從雲端取得紀錄；開始看動畫、刪除或切換最愛後會自動上傳。</p>
-      <div className='agh-actions'>
+      <div className='agh-actions agh-actions-end'>
         <button type='button' className='agh-button is-primary' disabled={syncing || definition === undefined} onClick={() => { void requestCloudSync('manual') }}>
           {syncing ? '同步中…' : '立即同步'}
         </button>
-        <button type='button' className='agh-button' onClick={() => { dispatch(autoSyncSet(!settings.autoSync)) }}>
-          {settings.autoSync ? '暫停自動同步' : '恢復自動同步'}
-        </button>
+        {definition !== undefined && <button type='button' className='agh-button is-danger' disabled={syncing} onClick={disconnect}>中斷同步</button>}
       </div>
     </div>
   )
@@ -94,19 +104,17 @@ const CloudPage = (): JSX.Element => {
   }
 
   const save = async (): Promise<Result> => {
+    // 沒有獨立的「測試連線」按鈕，改成儲存前先檢查，順便帶出 repository 不是 private 之類的警告
+    const check = await definition.test(trimmed)
+    if (!check.ok) return { ok: false, message: `尚未儲存：${check.message}` }
+    const warningAt = check.message.indexOf('⚠')
+    const warning = warningAt === -1 ? '' : `\n${check.message.slice(warningAt)}`
     dispatch(adapterSettingsSaved({ adapterId: definition.id, settings: trimmed }))
     await requestCloudSync('manual')
     const { ok, message } = store.getState().sync.status
     return ok === true
-      ? { ok: true, message: `已儲存並完成同步：${message}` }
+      ? { ok: true, message: `已儲存並完成同步：${message}${warning}` }
       : { ok: false, message: `已儲存，但同步失敗：${message}` }
-  }
-
-  const disconnect = (): void => {
-    if (!window.confirm('確定要中斷雲端同步嗎？\n會清除這個平台的設定與 Token；本機紀錄和雲端檔案都會保留。')) return
-    dispatch(syncDisconnected())
-    setValues({})
-    setResult({ ok: true, message: '已中斷雲端同步' })
   }
 
   // 設定字串含有 Token，加密只是避免不小心貼到別處時被一眼看懂
@@ -135,6 +143,27 @@ const CloudPage = (): JSX.Element => {
     return await applyTransfer(text)
   }
 
+  const renderField = (field: FieldSpec): JSX.Element => (
+    <label key={field.key} className='agh-field'>
+      <span className='agh-field-label'>
+        {field.label}
+        {field.required && <em className='agh-required'>*</em>}
+      </span>
+      <input
+        className='agh-input'
+        type={field.type}
+        value={values[field.key] ?? ''}
+        placeholder={field.placeholder}
+        autoComplete='off'
+        spellCheck={false}
+        onChange={(event) => setValues({ ...values, [field.key]: event.target.value })}
+      />
+      {field.help !== undefined && <small className='agh-hint'>{field.help}</small>}
+    </label>
+  )
+
+  const advancedFields = definition.fields.filter((field) => !field.required)
+
   return (
     <form className='agh-page' onSubmit={(event) => { event.preventDefault(); void run(save) }}>
       <label className='agh-field'>
@@ -143,30 +172,10 @@ const CloudPage = (): JSX.Element => {
           {cloudAdapters.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
         </select>
       </label>
-      <details className='agh-steps' open={!connected}>
-        <summary>設定步驟</summary>
-        <ol>
-          {definition.instructions.map((step) => <li key={step}>{step}</li>)}
-        </ol>
-      </details>
-      {definition.fields.map((field) => (
-        <label key={field.key} className='agh-field'>
-          <span className='agh-field-label'>
-            {field.label}
-            {field.required && <em className='agh-required'>*</em>}
-          </span>
-          <input
-            className='agh-input'
-            type={field.type}
-            value={values[field.key] ?? ''}
-            placeholder={field.placeholder}
-            autoComplete='off'
-            spellCheck={false}
-            onChange={(event) => setValues({ ...values, [field.key]: event.target.value })}
-          />
-          {field.help !== undefined && <small className='agh-hint'>{field.help}</small>}
-        </label>
-      ))}
+      <div className='agh-actions'>
+        <button type='button' className='agh-button' disabled={busy || incomplete} onClick={() => { void run(copy) }}>複製設定</button>
+        <button type='button' className='agh-button' disabled={busy} onClick={() => { void run(paste) }}>貼上設定</button>
+      </div>
       {pasting && (
         <div className='agh-field'>
           <span className='agh-field-label'>貼上設定字串</span>
@@ -186,19 +195,24 @@ const CloudPage = (): JSX.Element => {
           </div>
         </div>
       )}
+      <details className='agh-steps' open={!connected}>
+        <summary>設定步驟</summary>
+        <ol>
+          {definition.instructions.map((step) => <li key={step}>{step}</li>)}
+        </ol>
+      </details>
+      {definition.fields.filter((field) => field.required).map(renderField)}
+      {advancedFields.length > 0 && (
+        <details className='agh-steps'>
+          <summary>進階設定</summary>
+          <div className='agh-advanced'>{advancedFields.map(renderField)}</div>
+        </details>
+      )}
       <Message result={result} />
-      <div className='agh-actions'>
-        <button type='button' className='agh-button' disabled={busy || incomplete} onClick={() => { void run(async () => await definition.test(trimmed)) }}>
-          測試連線
-        </button>
+      <div className='agh-actions agh-actions-end'>
         <button type='submit' className='agh-button is-primary' disabled={busy || incomplete}>
           {busy ? '處理中…' : '儲存並同步'}
         </button>
-        {connected && <button type='button' className='agh-button is-danger' disabled={busy} onClick={disconnect}>中斷同步</button>}
-      </div>
-      <div className='agh-actions'>
-        <button type='button' className='agh-button' disabled={busy || incomplete} onClick={() => { void run(copy) }}>複製設定</button>
-        <button type='button' className='agh-button' disabled={busy} onClick={() => { void run(paste) }}>貼上設定</button>
       </div>
     </form>
   )

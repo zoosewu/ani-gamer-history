@@ -1,4 +1,5 @@
-import { Anime, AnimeHistory, HistorySnapshot, SNAPSHOT_APP, SNAPSHOT_SCHEMA_VERSION } from './types'
+import { Anime, AnimeHistory, AnimeSource, HistorySnapshot, SNAPSHOT_APP, SNAPSHOT_SCHEMA_VERSION } from './types'
+import { animeKey, DEFAULT_SOURCE, sourceOf } from './source'
 
 // 合併規則（交換律、結合律、冪等）：
 // - 觀看進度：取 timestamp 較大者
@@ -15,7 +16,9 @@ const text = (value: unknown): string => typeof value === 'string' ? value : ''
 
 // 固定屬性順序並去除無意義欄位，讓 JSON.stringify 可以直接比較內容
 export const normalizeAnime = (anime: Anime): Anime => {
+  const source: AnimeSource = anime.source === 'anime1' ? 'anime1' : DEFAULT_SOURCE
   const normalized: Anime = {
+    source,
     id: text(anime.id),
     title: text(anime.title),
     timestamp: finite(anime.timestamp),
@@ -25,6 +28,7 @@ export const normalizeAnime = (anime: Anime): Anime => {
     videoWatchTime: finite(anime.videoWatchTime),
     videoTotalTime: finite(anime.videoTotalTime)
   }
+  if (text(anime.seriesId) !== '') normalized.seriesId = text(anime.seriesId)
   const favoriteTime = finite(anime.favoriteTime)
   if (favoriteTime > 0) {
     normalized.isFavorite = anime.isFavorite === true
@@ -66,6 +70,8 @@ export const mergeAnime = (left: Anime, right: Anime): Anime => {
   const favorite = pickFavorite(a, b)
   return normalizeAnime({
     ...progress,
+    // 另一邊可能是較舊、還沒有 seriesId 的紀錄
+    seriesId: progress.seriesId ?? a.seriesId ?? b.seriesId,
     isFavorite: favorite.isFavorite,
     favoriteTime: favorite.favoriteTime,
     removeTime: maxRemoveTime(a, b)
@@ -74,18 +80,20 @@ export const mergeAnime = (left: Anime, right: Anime): Anime => {
 
 const compareAnime = (a: Anime, b: Anime): number => {
   if (a.timestamp !== b.timestamp) return b.timestamp - a.timestamp
-  if (a.title === b.title) return 0
-  return a.title < b.title ? -1 : 1
+  if (a.title !== b.title) return a.title < b.title ? -1 : 1
+  if (sourceOf(a) === sourceOf(b)) return 0
+  return sourceOf(a) < sourceOf(b) ? -1 : 1
 }
 
 const mergeList = (lists: Anime[][]): Anime[] => {
-  const byTitle = new Map<string, Anime>()
+  const byKey = new Map<string, Anime>()
   lists.flat().forEach((anime) => {
     if (anime.title === '') return // 抓不到標題的紀錄無法辨識，直接捨棄
-    const existing = byTitle.get(anime.title)
-    byTitle.set(anime.title, existing === undefined ? normalizeAnime(anime) : mergeAnime(existing, anime))
+    const key = animeKey(anime)
+    const existing = byKey.get(key)
+    byKey.set(key, existing === undefined ? normalizeAnime(anime) : mergeAnime(existing, anime))
   })
-  return [...byTitle.values()].sort(compareAnime)
+  return [...byKey.values()].sort(compareAnime)
 }
 
 export const mergeHistory = (...histories: AnimeHistory[]): AnimeHistory => {

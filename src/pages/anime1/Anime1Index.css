@@ -1,0 +1,15 @@
+/* anime1 的文章與列表：與動畫瘋分集按鈕相同的設計語言（左側色條 + 右上角角標），範圍收斂在標題列 */
+.agh-marked .entry-header {
+  position: relative;
+  /* 用 inset box-shadow 而不是 border，避免推動原本的版面 */
+  box-shadow: inset 3px 0 0 var(--agh-mark-color);
+  background: rgba(34, 197, 94, 0.08);
+  padding-left: 12px;
+}
+
+.agh-marked .agh-mark {
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+}

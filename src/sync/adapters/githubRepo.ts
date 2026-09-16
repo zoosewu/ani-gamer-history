@@ -147,7 +147,7 @@ export const createGithubRepoDefinition = (request: HttpClient): CloudAdapterDef
     '到 Settings → Developer settings → Fine-grained tokens 建立 Token。',
     'Repository access 選「Only select repositories」，只勾剛剛建立的 repository。',
     'Permissions → Repository permissions → Contents 設為「Read and write」。',
-    '把 Token 和 repository 名稱填到下方，按「測試連線」確認後儲存。'
+    '把 Token 和 repository 名稱填到下方，按「儲存並同步」。'
   ],
   fields: [
     { key: 'token', label: 'Token', type: 'password', required: true, placeholder: 'github_pat_…' },

@@ -196,6 +196,68 @@
   gap: 8px;
 }
 
+/* 置底的主要動作 */
+.agh-actions-end {
+  margin-top: auto;
+}
+
+.agh-advanced {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.agh-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.agh-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.agh-toggle-track {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  background: #c9ced6;
+  transition: background 150ms ease;
+}
+
+.agh-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 150ms ease;
+}
+
+.agh-toggle input:checked + .agh-toggle-track {
+  background: var(--agh-primary);
+}
+
+.agh-toggle input:checked + .agh-toggle-track::after {
+  transform: translateX(18px);
+}
+
+.agh-toggle input:focus-visible + .agh-toggle-track {
+  outline: 2px solid var(--agh-primary);
+  outline-offset: 2px;
+}
+
 .agh-button {
   padding: 8px 16px;
   border: 1px solid var(--agh-border);

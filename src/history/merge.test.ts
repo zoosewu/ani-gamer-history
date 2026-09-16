@@ -3,6 +3,7 @@ import { Anime, AnimeHistory } from './types'
 import { createSnapshot, isRemoved, isSameHistory, mergeAnime, mergeHistory, normalizeAnime, normalizeHistory, parseSnapshot } from './merge'
 
 const anime = (overrides: Partial<Anime> = {}): Anime => ({
+  source: 'ani-gamer',
   id: '1',
   timestamp: 1000,
   title: '葬送的芙莉蓮',
@@ -29,6 +30,8 @@ const randomHistory = (random: () => number): AnimeHistory => {
     if (random() < 0.2) continue
     history[userId] = Array.from({ length: Math.floor(random() * 4) }, () => anime({
       title: pick(['A', 'B', 'C']),
+      source: pick(['ani-gamer', 'anime1', undefined]),
+      seriesId: pick([undefined, 's1']),
       id: pick(['1', '2']),
       episode: pick(['1', '2']),
       timestamp: pick([100, 200, 300]),
@@ -62,9 +65,9 @@ describe('normalizeAnime', () => {
   })
 
   it('屬性順序固定', () => {
-    const shuffled = { removeTime: 5, videoTotalTime: 1, title: 'X', favoriteTime: 3, isFavorite: true, id: '9', timestamp: 1, episode: '2', animePicUrl: 'a', episodePicUrl: 'e', videoWatchTime: 0 }
+    const shuffled = { removeTime: 5, videoTotalTime: 1, title: 'X', favoriteTime: 3, isFavorite: true, id: '9', timestamp: 1, episode: '2', animePicUrl: 'a', episodePicUrl: 'e', videoWatchTime: 0, seriesId: 's1', source: 'anime1' as const }
     expect(Object.keys(normalizeAnime(shuffled))).toEqual([
-      'id', 'title', 'timestamp', 'episode', 'episodePicUrl', 'animePicUrl', 'videoWatchTime', 'videoTotalTime', 'isFavorite', 'favoriteTime', 'removeTime'
+      'source', 'id', 'title', 'timestamp', 'episode', 'episodePicUrl', 'animePicUrl', 'videoWatchTime', 'videoTotalTime', 'seriesId', 'isFavorite', 'favoriteTime', 'removeTime'
     ])
   })
 })
@@ -109,6 +112,28 @@ describe('mergeHistory', () => {
     expect(Object.keys(merged)).toEqual(['alice', 'bob'])
     expect(merged.alice.map((item) => [item.title, item.timestamp])).toEqual([['B', 300], ['A', 200]])
     expect(merged.bob).toHaveLength(1)
+  })
+
+  it('同名但不同來源是兩筆完全獨立的紀錄', () => {
+    const gamer = anime({ title: '詐欺遊戲', episode: '3', timestamp: 200 })
+    const anime1 = anime({ title: '詐欺遊戲', episode: '20', timestamp: 100, source: 'anime1', seriesId: '1898', id: '30152' })
+    const merged = mergeHistory({ tester: [gamer] }, { tester: [anime1] })
+    expect(merged.tester).toHaveLength(2)
+    expect(merged.tester.map((item) => [item.source, item.episode])).toEqual([['ani-gamer', '3'], ['anime1', '20']])
+  })
+
+  it('舊資料沒有 source 時視為動畫瘋，會和動畫瘋的紀錄合併成一筆', () => {
+    const legacy = { ...anime({ timestamp: 100 }), source: undefined }
+    const current = anime({ timestamp: 200, episode: '9' })
+    const merged = mergeHistory({ tester: [legacy] }, { tester: [current] })
+    expect(merged.tester).toHaveLength(1)
+    expect(merged.tester[0]).toEqual(anime({ timestamp: 200, episode: '9' }))
+  })
+
+  it('較舊的紀錄沒有 seriesId 時沿用另一邊的', () => {
+    const older = anime({ source: 'anime1', timestamp: 100, seriesId: '1898' })
+    const newer = { ...anime({ source: 'anime1', timestamp: 200 }), seriesId: undefined }
+    expect(mergeHistory({ tester: [older] }, { tester: [newer] }).tester[0].seriesId).toBe('1898')
   })
 
   it('捨棄沒有標題的紀錄', () => {

@@ -2,9 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { filter, map, of, Subscription } from 'rxjs'
 import fp from 'lodash/fp'
-import { Anime } from '@/history/types'
+import { Anime, SHARED_BUCKET } from '@/history/types'
 import { isRemoved } from '@/history/merge'
-import { isNotNil } from '@/util'
+import { animeUrl, SOURCE_LABEL, sourceOf } from '@/history/source'
 import { store } from '../redux/store'
 import { Provider } from 'react-redux'
 import { useAppDispatch, useAppSelector } from '../redux/hooks'
@@ -22,28 +22,39 @@ export default (URL: URL): Subscription => of(URL)
   .subscribe((pathname) => {
     init(pathname)
   })
-interface AnimeCartPayload {
-  userId: string
+
+interface AnimeCardPayload {
+  // 紀錄所屬的 bucket：動畫瘋是使用者 id，anime1 是不綁使用者的 SHARED_BUCKET
+  bucket: string
   anime: Anime
 }
 
-const AnimeCard = ({ userId, anime: { id, title, episodePicUrl, animePicUrl, episode, videoWatchTime, videoTotalTime, removeTime, isFavorite } }: AnimeCartPayload): JSX.Element => {
+const AnimeCard = ({ bucket, anime }: AnimeCardPayload): JSX.Element => {
   const dispatch = useAppDispatch()
-  // goto href={`animeVideo.php?sn=${id}`}
-  const handleClick = (): void => {
-    window.location.href = `animeVideo.php?sn=${id}`
-  }
+  const { title, episodePicUrl, animePicUrl, episode, videoWatchTime, videoTotalTime, isFavorite } = anime
+  const source = sourceOf(anime)
+  const href = animeUrl(anime)
+  const hasImage = animePicUrl !== '' || episodePicUrl !== ''
   const leftMinutes = Math.max(Math.floor((videoTotalTime - videoWatchTime) / 60), 0)
+  const target = { userId: bucket, animeTitle: title, source }
   return (
     <div className='continue-watch-card' style={{ transition: '1s', paddingBottom: 'unset', height: 'unset', minWidth: '100px' }}>
       <a className='img-block' data-gtm-category='首頁' data-gtm-event='點擊繼續觀看卡片' tabIndex={0}>
         <div style={{ pointerEvents: 'none' }}>
-          <div className='img-bg-blur-bg is-next' style={{ backgroundImage: `url('${episodePicUrl}')`, visibility: 'hidden' }} />
-          <div className='img-bg-blur-bg' style={{ backgroundImage: `url('${animePicUrl}')` }} />
-          <img className='card-img is-next lazyloaded' style={{ visibility: 'hidden' }} src={episodePicUrl} data-src={episodePicUrl} alt={title} />
-          <img className='card-img lazyloaded' src={animePicUrl} data-src={animePicUrl} alt={title} />
-          <a className='line-gradient' style={{ pointerEvents: 'auto' }} onClick={() => handleClick()} href={`animeVideo.php?sn=${id}`} />
-          <i className='btn-delete material-icons-round' data-gtm-category='首頁' data-gtm-event='點擊移除繼續觀看卡片' style={{ pointerEvents: 'auto' }} onClick={() => dispatch(removeAnime({ userId, animeTitle: title }))}>close</i>
+          {hasImage
+            ? (
+              <>
+                <div className='img-bg-blur-bg is-next' style={{ backgroundImage: `url('${episodePicUrl}')`, visibility: 'hidden' }} />
+                <div className='img-bg-blur-bg' style={{ backgroundImage: `url('${animePicUrl}')` }} />
+                <img className='card-img is-next lazyloaded' style={{ visibility: 'hidden' }} src={episodePicUrl} data-src={episodePicUrl} alt={title} />
+                <img className='card-img lazyloaded' src={animePicUrl} data-src={animePicUrl} alt={title} />
+              </>
+              )
+            // anime1 沒有封面圖，改用文字佔位
+            : <div className='agh-placeholder'><span>{title}</span></div>}
+          {source !== 'ani-gamer' && <span className='agh-source-badge'>{SOURCE_LABEL[source]}</span>}
+          <a className='line-gradient' style={{ pointerEvents: 'auto' }} href={href} />
+          <i className='btn-delete material-icons-round' data-gtm-category='首頁' data-gtm-event='點擊移除繼續觀看卡片' style={{ pointerEvents: 'auto' }} onClick={() => dispatch(removeAnime(target))}>close</i>
           <div
             className={'btn-card-block btn-favorite btn-not-active' + (isFavorite ?? false ? ' btn-is-active' : '')}
             style={{
@@ -56,11 +67,11 @@ const AnimeCard = ({ userId, anime: { id, title, episodePicUrl, animePicUrl, epi
               transition: '500ms',
               zIndex: 4
             }}
-            onClick={() => dispatch(toggleFavorite({ userId, animeTitle: title }))}
+            onClick={() => dispatch(toggleFavorite(target))}
           />
         </div>
       </a>
-      <a className='content-block' href={`animeVideo.php?sn=${id}`} data-gtm-category='首頁' data-gtm-event='點擊繼續觀看卡片' tabIndex={0}>
+      <a className='content-block' href={href} data-gtm-category='首頁' data-gtm-event='點擊繼續觀看卡片' tabIndex={0}>
         <div className='img-progress-block' style={{ pointerEvents: 'none' }}>
           <div className='info-row'>
             <div className='episode-block'>
@@ -88,17 +99,24 @@ const AnimeCard = ({ userId, anime: { id, title, episodePicUrl, animePicUrl, epi
 }
 
 interface MainContainerPayload {
-  userId: string
+  // 沒有登入時為 null，這時只顯示不綁使用者的紀錄（anime1）
+  userId: string | null
 }
+
 const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
   const animeHistory = useAppSelector((state) => state.animeHistory)
-  const histories = animeHistory[userId] ?? []
-  const filtered = histories.filter(anime => !isRemoved(anime))
-  const favs = filtered.filter(a => a.isFavorite === true).sort((a, b) => b.timestamp - a.timestamp)
-  const others = filtered.filter(a => a.isFavorite !== true).sort((a, b) => b.timestamp - a.timestamp)
-  const sorted = [...favs, ...others]
+  const buckets = userId === null ? [SHARED_BUCKET] : [userId, SHARED_BUCKET]
+  const entries = buckets.flatMap((bucket) => (animeHistory[bucket] ?? []).map((anime) => ({ bucket, anime })))
+  const visible = entries.filter(({ anime }) => !isRemoved(anime))
+  const byTime = (a: AnimeCardPayload, b: AnimeCardPayload): number => b.anime.timestamp - a.anime.timestamp
+  const sorted = [
+    ...visible.filter(({ anime }) => anime.isFavorite === true).sort(byTime),
+    ...visible.filter(({ anime }) => anime.isFavorite !== true).sort(byTime)
+  ]
 
-  const Histories = sorted.map(anime => <AnimeCard key={anime.title} userId={userId} anime={anime} />)
+  const Histories = sorted.map(({ bucket, anime }) => (
+    <AnimeCard key={`${bucket}/${sourceOf(anime)}/${anime.title}`} bucket={bucket} anime={anime} />
+  ))
   return (
     <div id='watched-anime' className='continue-watch-area ani-gamer-history'>
       <div className='theme-title-block'>
@@ -136,10 +154,10 @@ const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
     </div>
   )
 }
-const init = (pathname: string): Subscription => of(pathname).pipe(
-  map(() => document.getElementsByClassName('user-id')[0]?.innerHTML),
-  filter(isNotNil)
-).subscribe((userId) => {
+
+const init = (pathname: string): Subscription => of(pathname).subscribe(() => {
+  // 沒有登入也要顯示，因為 anime1 的紀錄不綁使用者
+  const userId = document.getElementsByClassName('user-id')[0]?.innerHTML ?? null
   const app = document.getElementById('blockContinueWatch') ?? document.getElementById('blockVideoInSeason')
   const container = document.createElement('div')
   app?.after(container)
