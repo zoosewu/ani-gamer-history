@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { AdapterSettings, TestResult } from '@/sync/adapter'
+import { AdapterSettings, importAdapterSettings, TestResult } from '@/sync/adapter'
+import { readClipboard } from '@/sync/clipboard'
 import { cloudAdapters, findCloudAdapter } from '@/sync/cloudAdapters'
-import { errorMessage, exportJson, importJson, requestCloudSync } from '@/sync/syncService'
+import { decodeSettingsTransfer } from '@/sync/settingsTransfer'
+import { copyAdapterSettings, errorMessage, exportJson, importJson, requestCloudSync } from '@/sync/syncService'
 import { store } from '../redux/store'
 import { useAppDispatch, useAppSelector } from '../redux/hooks'
 import { adapterSettingsSaved, autoSyncSet, syncDisconnected } from '../redux/syncSlice'
@@ -78,6 +80,8 @@ const CloudPage = (): JSX.Element => {
   const [adapterId, setAdapterId] = useState(findCloudAdapter(saved.adapterId)?.id ?? cloudAdapters[0].id)
   const definition = findCloudAdapter(adapterId) ?? cloudAdapters[0]
   const [values, setValues] = useState<AdapterSettings>(saved.adapters[definition.id] ?? {})
+  const [pasting, setPasting] = useState(false)
+  const [pasteText, setPasteText] = useState('')
   const { busy, result, setResult, run } = useTask()
   const connected = saved.adapterId === definition.id
   const trimmed: AdapterSettings = Object.fromEntries(definition.fields.map((field) => [field.key, (values[field.key] ?? '').trim()]))
@@ -103,6 +107,32 @@ const CloudPage = (): JSX.Element => {
     dispatch(syncDisconnected())
     setValues({})
     setResult({ ok: true, message: '已中斷雲端同步' })
+  }
+
+  // 設定字串含有 Token，加密只是避免不小心貼到別處時被一眼看懂
+  const copy = async (): Promise<Result> => {
+    await copyAdapterSettings(definition, trimmed)
+    return { ok: true, message: '已複製設定到剪貼簿，可在另一台電腦的這個畫面貼上。內容含有 Token，請勿公開張貼。' }
+  }
+
+  const applyTransfer = async (text: string): Promise<Result> => {
+    const transfer = await decodeSettingsTransfer(text)
+    const target = findCloudAdapter(transfer.adapterId)
+    if (target === undefined) return { ok: false, message: `這個腳本沒有「${transfer.adapterId}」這個平台，請先更新腳本` }
+    setAdapterId(target.id)
+    setValues(importAdapterSettings(target, transfer.settings))
+    setPasteText('')
+    setPasting(false)
+    return { ok: true, message: '已讀入設定，確認內容後按「儲存並同步」' }
+  }
+
+  const paste = async (): Promise<Result> => {
+    const text = await readClipboard()
+    if (text === null) {
+      setPasting(true)
+      return { ok: true, message: '瀏覽器不允許直接讀取剪貼簿，請在下方欄位貼上設定字串' }
+    }
+    return await applyTransfer(text)
   }
 
   return (
@@ -137,6 +167,25 @@ const CloudPage = (): JSX.Element => {
           {field.help !== undefined && <small className='agh-hint'>{field.help}</small>}
         </label>
       ))}
+      {pasting && (
+        <div className='agh-field'>
+          <span className='agh-field-label'>貼上設定字串</span>
+          <textarea
+            className='agh-input agh-textarea'
+            rows={3}
+            value={pasteText}
+            placeholder='AGH1.…'
+            spellCheck={false}
+            onChange={(event) => setPasteText(event.target.value)}
+          />
+          <div className='agh-actions'>
+            <button type='button' className='agh-button is-primary' disabled={busy || pasteText.trim() === ''} onClick={() => { void run(async () => await applyTransfer(pasteText)) }}>
+              讀入
+            </button>
+            <button type='button' className='agh-button' onClick={() => { setPasting(false); setPasteText('') }}>取消</button>
+          </div>
+        </div>
+      )}
       <Message result={result} />
       <div className='agh-actions'>
         <button type='button' className='agh-button' disabled={busy || incomplete} onClick={() => { void run(async () => await definition.test(trimmed)) }}>
@@ -146,6 +195,10 @@ const CloudPage = (): JSX.Element => {
           {busy ? '處理中…' : '儲存並同步'}
         </button>
         {connected && <button type='button' className='agh-button is-danger' disabled={busy} onClick={disconnect}>中斷同步</button>}
+      </div>
+      <div className='agh-actions'>
+        <button type='button' className='agh-button' disabled={busy || incomplete} onClick={() => { void run(copy) }}>複製設定</button>
+        <button type='button' className='agh-button' disabled={busy} onClick={() => { void run(paste) }}>貼上設定</button>
       </div>
     </form>
   )

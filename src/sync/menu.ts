@@ -3,7 +3,7 @@ import { store } from '@/pages/redux/store'
 import { startAppListening } from '@/pages/redux/listenerMiddleware'
 import { autoSyncSet } from '@/pages/redux/syncSlice'
 import { openSettings } from '@/pages/settings/openSettings'
-import { errorMessage, exportJson, requestCloudSync } from './syncService'
+import { copySavedSettings, errorMessage, exportJson, requestCloudSync } from './syncService'
 
 const notify = (text: string): void => {
   GM_notification({ title: 'Ani Gamer History', text })
@@ -19,6 +19,11 @@ const menuItems = (autoSync: boolean): Array<[string, () => void]> => [
     })
   }],
   [autoSync ? '⏸ 暫停自動同步' : '▶ 恢復自動同步', () => { store.dispatch(autoSyncSet(!store.getState().sync.settings.autoSync)) }],
+  ['⧉ 複製同步設定', () => {
+    copySavedSettings()
+      .then(() => notify('已複製同步設定到剪貼簿，可在另一台電腦的設定畫面貼上'))
+      .catch((error) => notify(`複製失敗：${errorMessage(error)}`))
+  }],
   ['⤓ 匯出 JSON', () => { exportJson().catch((error) => notify(`匯出失敗：${errorMessage(error)}`)) }]
 ]
 

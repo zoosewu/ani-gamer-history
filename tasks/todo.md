@@ -43,3 +43,11 @@ adapter 模式：共用核心處理「資料進來後怎麼合併」與「何時
 - 新增 `src/sync/http.ts`（HTTP 型別）與 `src/sync/syncService.ts`（連接 store 與 syncEngine），讓 adapter 與 engine 測試不依賴 `$`
 - 新增 `src/sync/syncStorage.ts`、`syncPersistence.ts`：同步設定與狀態存在 GM storage 並跨分頁同步
 - 手動「立即同步」從 Tampermonkey 選單執行時，以 `GM_notification` 顯示結果
+
+## 追加功能：用剪貼簿搬移雲端設定（2026-09-16）
+- `src/sync/settingsTransfer.ts`：AES-GCM 加密，金鑰由兩張表 XOR 還原後經 PBKDF2 推導，避免密鑰以明文出現在 build 產物；輸出 `AGH1.` 前綴的 base64url
+- `src/sync/clipboard.ts`：複製用 `GM_setClipboard`（不受使用者手勢限制）；讀取用 `navigator.clipboard.readText()`，失敗時 dialog 顯示手動貼上欄位
+- `src/sync/adapter.ts`：新增可選的 `exportSettings` / `importSettings`，預設依 `fields` 取值（去空白、去空值）
+- 貼上後只填入表單，由使用者按「儲存並同步」套用；不帶 `autoSync`；沒有有效期限
+- 安全界線：金鑰在公開腳本內，任何人都能解開，只防手滑外洩；已寫在 readme
+- 驗證：單元測試 8 個（來回轉換、竄改偵測、格式錯誤、非字串欄位過濾、adapter 覆寫）；端對端 16 個情境（含 A 複製 → C 手動貼上 → 儲存後拉到資料、B 直接讀剪貼簿）
