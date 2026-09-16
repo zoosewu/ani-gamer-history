@@ -39,7 +39,7 @@
  * 巴哈全站 CSS 直接設定了元素樣式（section 的 padding-top: 24px、h3 / p 的 line-height 等）。
  * :where() 讓這段 specificity 與單一 class 相同，後面的 agh- 樣式會覆蓋它。
  */
-.agh-dialog :where(section, header, nav, div, h3, h4, p, span, li, input) {
+.agh-dialog :where(section, header, nav, div, h3, h4, p, span, li, input, textarea) {
   position: static;
   width: auto;
   padding: 0;
@@ -282,6 +282,15 @@
 .agh-input:focus {
   border-color: var(--agh-primary);
   outline: 1px solid var(--agh-primary);
+}
+
+.agh-textarea {
+  min-height: 72px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: vertical;
+  word-break: break-all;
 }
 
 .agh-steps {

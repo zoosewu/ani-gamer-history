@@ -1,7 +1,10 @@
 import { store } from '@/pages/redux/store'
 import { mergeHistory } from '@/pages/redux/animeHistorySlice'
 import { syncFinished, syncStarted } from '@/pages/redux/syncSlice'
+import { AdapterSettings, CloudAdapterDefinition, exportAdapterSettings } from './adapter'
 import { createJsonFileAdapter } from './adapters/jsonFile'
+import { writeClipboard } from './clipboard'
+import { encodeSettingsTransfer } from './settingsTransfer'
 import { findCloudAdapter } from './cloudAdapters'
 import { createSingleFlight, pullFrom, pushTo, syncWith, SyncDeps } from './syncEngine'
 
@@ -59,4 +62,19 @@ export const importJson = async (): Promise<boolean> => {
   const imported = await pullFrom(createJsonFileAdapter(), deps)
   if (imported) scheduleUpdateSync()
   return imported
+}
+
+// 把雲端平台設定加密後放進剪貼簿，方便搬到另一台電腦
+export const copyAdapterSettings = async (definition: CloudAdapterDefinition, settings: AdapterSettings): Promise<void> => {
+  writeClipboard(await encodeSettingsTransfer({
+    adapterId: definition.id,
+    settings: exportAdapterSettings(definition, settings)
+  }))
+}
+
+// 複製目前已儲存的設定（Tampermonkey 選單用）
+export const copySavedSettings = async (): Promise<void> => {
+  const definition = getCloudAdapter()
+  if (definition === undefined) throw new Error('尚未設定雲端平台')
+  await copyAdapterSettings(definition, store.getState().sync.settings.adapters[definition.id] ?? {})
 }

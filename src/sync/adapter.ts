@@ -39,4 +39,27 @@ export interface CloudAdapterDefinition {
   fields: FieldSpec[]
   create: (settings: AdapterSettings) => HistoryAdapter
   test: (settings: AdapterSettings) => Promise<TestResult>
+  // 複製 / 貼上設定時預設只帶 fields 描述的欄位，平台有特殊需求時才覆寫
+  exportSettings?: (settings: AdapterSettings) => AdapterSettings
+  importSettings?: (settings: AdapterSettings) => AdapterSettings
+}
+
+// 只取這個平台認得的欄位，並去掉空值
+const pickFields = (definition: CloudAdapterDefinition, settings: AdapterSettings): AdapterSettings => {
+  const picked: AdapterSettings = {}
+  definition.fields.forEach((field) => {
+    const value = (settings[field.key] ?? '').trim()
+    if (value !== '') picked[field.key] = value
+  })
+  return picked
+}
+
+export const exportAdapterSettings = (definition: CloudAdapterDefinition, settings: AdapterSettings): AdapterSettings => {
+  const picked = pickFields(definition, settings)
+  return definition.exportSettings?.(picked) ?? picked
+}
+
+export const importAdapterSettings = (definition: CloudAdapterDefinition, settings: AdapterSettings): AdapterSettings => {
+  const picked = pickFields(definition, settings)
+  return definition.importSettings?.(picked) ?? picked
 }
