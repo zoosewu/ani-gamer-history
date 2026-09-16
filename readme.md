@@ -39,6 +39,13 @@ npm test       # 單元測試
 npm run build  # 產生 dist/ani-gamer-history.user.js
 ```
 新增同步平台：實作 `src/sync/adapter.ts` 的 `CloudAdapterDefinition`，並加入 `src/sync/cloudAdapters.ts`。
+# 發佈
+commit 訊息請使用 [Conventional Commits](https://www.conventionalcommits.org/lang/zh-hant/)（`feat:`、`fix:` 等），版本號與 CHANGELOG 由 release-please 依 commit 自動產生：
+1. push 到 master 後，GitHub Actions 會自動建立或更新一個「chore: release x.y.z」的 Release PR
+2. 合併該 PR 會建立 tag 與 GitHub Release，並自動 build 出 userscript 上傳為附檔
+3. 附檔名稱固定為 `ani-gamer-history.user.js`，Tampermonkey 由 releases/latest 取得更新
+
+`feat:` 會提升次版號、`fix:` 提升修訂號；`chore:`、`ci:`、`docs:`、`test:` 不會發版。
 # TODO
 - [X] 雲端同步的功能（GitHub Private Repository）
 - [X] 刪除不想看的動畫
