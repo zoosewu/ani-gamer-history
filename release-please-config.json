@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "include-v-in-tag": false,
+      "include-component-in-tag": false,
+      "pull-request-title-pattern": "chore: release ${version}",
+      "changelog-sections": [
+        { "type": "feat", "section": "新增功能" },
+        { "type": "fix", "section": "問題修正" },
+        { "type": "perf", "section": "效能" },
+        { "type": "refactor", "section": "調整" },
+        { "type": "docs", "section": "文件", "hidden": true },
+        { "type": "chore", "section": "維護", "hidden": true },
+        { "type": "test", "section": "測試", "hidden": true },
+        { "type": "build", "section": "建置", "hidden": true },
+        { "type": "ci", "section": "CI", "hidden": true }
+      ]
+    }
+  }
+}
