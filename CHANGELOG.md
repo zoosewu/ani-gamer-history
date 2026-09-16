@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/zoosewu/ani-gamer-history/compare/0.4.0...0.5.0) (2026-09-16)
+
+
+### 新增功能
+
+* **sync:** copy and paste cloud settings via the clipboard ([1245590](https://github.com/zoosewu/ani-gamer-history/commit/12455902d13f60ac06962e9131e317aba812b576))
+* **sync:** copy and paste cloud settings via the clipboard ([11a76d3](https://github.com/zoosewu/ani-gamer-history/commit/11a76d37fd9aeda921e1977bc2f92775d9feff94))
+
 ## [0.4.0](https://github.com/zoosewu/ani-gamer-history/compare/0.3.0...0.4.0) (2026-09-16)
 
 
