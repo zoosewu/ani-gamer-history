@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit'
 import animeHistoryReducer from './animeHistorySlice'
 import syncReducer from './syncSlice'
+import preferencesReducer from './preferencesSlice'
 import { listenerMiddleware } from './listenerMiddleware'
 export const store = configureStore({
   reducer: {
     animeHistory: animeHistoryReducer,
-    sync: syncReducer
+    sync: syncReducer,
+    preferences: preferencesReducer
   },
   middleware: (getDefaultMiddleware) => getDefaultMiddleware().prepend(listenerMiddleware.middleware)
 })

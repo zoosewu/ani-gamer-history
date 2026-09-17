@@ -5,7 +5,7 @@
 2. [點我安裝套件](https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js)
 # 使用方法
 1. 紀錄動畫：在分級確認的地方點選同意的時候會將當下的動畫記錄起來
-2. 顯示上次觀看：在動畫頁面會顯示上次觀看，即便已經超過 90 天
+2. 顯示上次觀看：在動畫頁面的分集清單上，本機紀錄的那一集會有綠色角標，即便已經超過 90 天。這個標記和動畫瘋原本的「上次觀看」是分開的，兩邊一致或不一致都看得出來
 3. 顯示歷史紀錄：在首頁的本季新番下面會多一個本機歷史紀錄的列表，會從新到舊排序觀看紀錄。
 4. 移除歷史紀錄：在首頁的本機歷史紀錄動畫右上角可以移除觀看紀錄。(無法復原，請慎用)
 5. 最愛：在首頁的本機歷史紀錄動畫右上角可以加入最愛，最愛會排在列表最前面。
@@ -16,7 +16,7 @@
 2. 到 Settings → Developer settings → Personal access tokens → Fine-grained tokens 建立 Token：
    - Repository access 選「Only select repositories」，只勾剛剛建立的 repository
    - Repository permissions → Contents 設為「Read and write」
-3. 打開同步設定的「雲端平台」頁，填入 Token 與 `owner/repo`，按「測試連線」確認後按「儲存並同步」。
+3. 打開同步設定的「雲端平台」頁，填入 Token 與 `owner/repo`，按「儲存並同步」（儲存前會自動檢查連線）。
 4. 其他電腦重複步驟 3。
 
 同步時機：
