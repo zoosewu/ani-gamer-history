@@ -1,12 +1,9 @@
 /*
- * 分集按鈕的本機紀錄標記。
- * 巴哈的 .season ul li 有 overflow: hidden，標記只能畫在格子內；
- * 而且站方的「上次觀看」用的是 li:after，所以這裡改成在 <a> 內放自己的元素，兩者不會互相覆蓋。
+ * 分集按鈕的本機紀錄書籤。
+ * 巴哈的 .season ul li 有 overflow: hidden，書籤要畫在格子內；
+ * 站方的「上次觀看」用的是 li:after（左下角），所以書籤是 <li> 裡自己的元素，掛在右上角。
  */
-.season .agh-mark {
+.season .agh-bookmark {
   top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  border-top: 2px solid var(--agh-mark-color);
+  right: 6px;
 }

@@ -1,26 +1,24 @@
 /*
- * 「本機紀錄」的共用標記樣式：動畫瘋的分集按鈕與 anime1 的列表共用同一套設計語言。
- * 綠色是刻意選的：動畫瘋的「播放中」是青色 (#00b4d8)、「上次觀看」是粉色 (#ea7b94)，
- * 用綠色才不會和站方原本的狀態混淆，也能同時並存。
+ * 「本機紀錄」的共用書籤：動畫瘋分集按鈕與 anime1 共用同一個形狀與顏色，各頁面只決定掛在哪裡。
+ * 琥珀色刻意避開站方的顏色：動畫瘋「播放中」青色、「上次觀看」粉色；anime1 的主色是綠色。
  */
 :root {
-  --agh-mark-color: #22c55e;
+  --agh-bookmark: #f0a01e;
+  --agh-bookmark-ink: #9a5b00;
 }
 
-.agh-mark {
+/* 動畫瘋的深色模式 */
+html[data-theme="dark"] {
+  --agh-bookmark: #f6b53d;
+  --agh-bookmark-ink: #f6c16b;
+}
+
+.agh-bookmark {
   position: absolute;
-  pointer-events: none;
   z-index: 4;
-}
-
-/* 右上角的三角形角標 */
-.agh-mark::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-top: 14px solid var(--agh-mark-color);
-  border-left: 14px solid transparent;
+  width: 10px;
+  height: 14px;
+  background: var(--agh-bookmark);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+  pointer-events: none;
 }

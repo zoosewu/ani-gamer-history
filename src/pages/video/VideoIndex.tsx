@@ -4,12 +4,13 @@ import fp from 'lodash/fp'
 import { Anime } from '@/history/types'
 import { isRemoved } from '@/history/merge'
 import { sourceOf } from '@/history/source'
+import { describeProgress } from '@/history/time'
 import { store } from '../redux/store'
 import { recordWatch } from '../redux/animeHistorySlice'
 import '@/pages/marker.css'
 import './VideoIndex.css'
 
-const MARK_CLASS = 'agh-mark'
+const MARK_CLASS = 'agh-bookmark'
 
 export default (URL: URL): Subscription => of(URL)
   .pipe(
@@ -42,16 +43,21 @@ const findEpisodeLink = (anime: Anime): Element | undefined =>
 const renderMark = (): void => {
   const anime = lastWatched()
   const link = anime === undefined ? undefined : findEpisodeLink(anime)
-  // 標記放在 <li> 而不是 <a> 裡，才不會污染連結的內容（集數是從連結文字讀出來的）
+  // 書籤放在 <li> 而不是 <a> 裡，才不會污染連結的內容（集數是從連結文字讀出來的）
   const container = link?.closest('li') ?? link
-  const existing = document.querySelector(`.${MARK_CLASS}`)
-  if (existing?.parentElement === container) return
+  const title = anime === undefined ? '' : `本機紀錄・第 ${anime.episode} 集・看到 ${describeProgress(anime)}`
+  const existing = document.querySelector<HTMLElement>(`.${MARK_CLASS}`)
+  if (existing !== null && existing.parentElement === container) {
+    // 同一格只更新說明（播放中每秒都會更新看到的時間）
+    if (existing.title !== title) existing.title = title
+    return
+  }
   existing?.remove()
   if (anime === undefined || container == null) return
 
   const mark = document.createElement('span')
   mark.className = MARK_CLASS
-  mark.title = `本機紀錄：第 ${anime.episode} 集`
+  mark.title = title
   container.append(mark)
 }
 
