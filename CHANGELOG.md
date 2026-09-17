@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1](https://github.com/zoosewu/ani-gamer-history/compare/0.7.0...0.7.1) (2026-09-17)
+
+
+### 問題修正
+
+* **anime1:** place the title bookmark on the left of the title ([082bef2](https://github.com/zoosewu/ani-gamer-history/commit/082bef28fd9f2c3c121dc1dd4b796cc2863a8702))
+* **home:** let card titles in the local history use the full width ([082bef2](https://github.com/zoosewu/ani-gamer-history/commit/082bef28fd9f2c3c121dc1dd4b796cc2863a8702))
+
 ## [0.7.0](https://github.com/zoosewu/ani-gamer-history/compare/0.6.0...0.7.0) (2026-09-17)
 
 
