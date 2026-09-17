@@ -34,3 +34,6 @@ node_modules/
 # Task files
 # tasks.json
 # tasks/ 
+
+# 相容性測試從 git tag 取出的已發佈版本
+.compat/

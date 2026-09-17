@@ -12,6 +12,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # 相容性測試要從 git tag 取出已發佈版本的程式碼（見 docs/schema-version.md）
+          fetch-depth: 0
 
       - name: Install Node.js
         uses: actions/setup-node@v7
