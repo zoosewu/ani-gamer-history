@@ -6,7 +6,12 @@ const CONVENTIONAL = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|re
 const AUTOSQUASH = /^(fixup|squash|amend)! /
 const BREAKING = /^BREAKING[ -]CHANGE: /
 const MARKER = '<!-- changelog-override：由 workflow 依 commit 自動產生；要手動調整請刪除這一行 -->'
-const MANAGED_BLOCK = /\n*<!-- changelog-override：[^\n]*-->\nBEGIN_COMMIT_OVERRIDE[\s\S]*?END_COMMIT_OVERRIDE\n*/
+const SUMMARY = '<summary>CHANGELOG（依 commit 自動產生）</summary>'
+
+// workflow 維護的區塊（一定帶有標記）
+const MANAGED_BLOCK = /<details>\n<summary>CHANGELOG（依 commit 自動產生）<\/summary>\n\n<!-- changelog-override：[^\n]*-->\n```\nBEGIN_COMMIT_OVERRIDE\n[\s\S]*?\nEND_COMMIT_OVERRIDE\n```\n\n<\/details>\n*/g
+// 使用者手寫的區塊：關鍵字要單獨成行，文字裡順帶提到不算
+const MANUAL_BLOCK = /^[ \t]*BEGIN_COMMIT_OVERRIDE[ \t]*$[\s\S]*?^[ \t]*END_COMMIT_OVERRIDE[ \t]*$/m
 
 // 一個 commit 訊息轉成一筆紀錄；不是 conventional commit 時回傳 null
 const toEntry = (message) => {
@@ -28,14 +33,17 @@ const buildOverride = (messages) => {
 // 回傳更新後的 PR 描述；不需要更新時回傳 null
 const applyOverride = (body, messages) => {
   const current = body ?? ''
-  // 使用者自己寫的覆寫區塊（沒有標記）優先，不去動它
-  if (current.includes('BEGIN_COMMIT_OVERRIDE') && !current.includes(MARKER)) return null
+  const rest = current.replace(MANAGED_BLOCK, '').trim()
+  // 使用者自己寫的覆寫區塊優先，不去動它
+  if (MANUAL_BLOCK.test(rest)) return null
 
   const override = buildOverride(messages)
-  const withoutBlock = current.replace(MANAGED_BLOCK, '\n').trimEnd()
-  const next = override === null
-    ? withoutBlock
-    : `${withoutBlock}${withoutBlock === '' ? '' : '\n\n'}${MARKER}\n${override}`
+  // 放在描述最上方：release-please 從第一個 BEGIN_COMMIT_OVERRIDE 開始讀，
+  // 描述其他地方提到這個字時也不會讀錯
+  const block = override === null
+    ? ''
+    : `<details>\n${SUMMARY}\n\n${MARKER}\n\`\`\`\n${override}\n\`\`\`\n\n</details>`
+  const next = [block, rest].filter((part) => part !== '').join('\n\n')
   return next.trim() === current.trim() ? null : next
 }
 

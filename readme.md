@@ -54,7 +54,7 @@ commit 訊息請使用 [Conventional Commits](https://www.conventionalcommits.or
 
 `feat:` 會提升次版號、`fix:` 提升修訂號；`chore:`、`ci:`、`docs:`、`test:` 不會發版。
 
-PR 請用 **Squash merge** 合併。一個 PR 可以包含多個 commit：開 PR 或推新 commit 時，workflow 會把 PR 上每個符合格式的 commit 寫進 PR 描述最下方的 `BEGIN_COMMIT_OVERRIDE` 區塊，合併後每個 commit 會各自成為一筆 CHANGELOG（`wip`、`fixup!` 這類 commit 會被略過）。需要手動調整時，刪掉區塊上方的標記註解再直接編輯，workflow 就不會再覆蓋。
+PR 請用 **Squash merge** 合併。一個 PR 可以包含多個 commit：開 PR 或推新 commit 時，workflow 會把 PR 上每個符合格式的 commit 寫進 PR 描述最上方（預設收合）的 `BEGIN_COMMIT_OVERRIDE` 區塊，合併後每個 commit 會各自成為一筆 CHANGELOG（`wip`、`fixup!` 這類 commit 會被略過）。需要手動調整時，刪掉區塊上方的標記註解再直接編輯，workflow 就不會再覆蓋。
 # TODO
 - [X] 雲端同步的功能（GitHub Private Repository）
 - [X] 刪除不想看的動畫
