@@ -6,12 +6,14 @@ import anime1 from './pages/anime1/Anime1Index'
 import { store } from '@/pages/redux/store'
 import { setupHistoryPersistence } from '@/history/persistence'
 import { setupSyncPersistence } from '@/sync/syncPersistence'
+import { setupPreferencesPersistence } from '@/preferences/persistence'
 import { setupSyncTriggers } from '@/sync/triggers'
 import { setupMenu } from '@/sync/menu'
 import _ from 'lodash'
 _.noConflict() // necessary for import lodash
 setupHistoryPersistence()
 setupSyncPersistence()
+setupPreferencesPersistence()
 setupSyncTriggers()
 setupMenu()
 console.log('Init ani-gamer-history', store.getState().animeHistory)

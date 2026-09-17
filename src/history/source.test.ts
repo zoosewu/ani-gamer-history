@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Anime } from './types'
-import { animeKey, animeUrl, sourceOf } from './source'
+import { animeKey, animeUrl, listExtraSources, sourceLabel, sourceOf } from './source'
 
 const anime = (overrides: Partial<Anime> = {}): Anime => ({
   id: '42', timestamp: 1, title: '測試動畫', episodePicUrl: '', animePicUrl: '', episode: '1', videoWatchTime: 0, videoTotalTime: 0, ...overrides
@@ -20,5 +20,17 @@ describe('source', () => {
   it('同名不同來源的 key 不同', () => {
     expect(animeKey(anime())).not.toBe(animeKey(anime({ source: 'anime1' })))
     expect(animeKey(anime())).toBe(animeKey(anime({ source: 'ani-gamer' })))
+  })
+
+  it('只列出動畫瘋以外、實際有紀錄的來源', () => {
+    expect(listExtraSources({})).toEqual([])
+    expect(listExtraSources({ tester: [anime()] })).toEqual([])
+    expect(listExtraSources({ tester: [anime()], '@shared': [anime({ source: 'anime1' }), anime({ source: 'anime1', title: '另一部' })] })).toEqual(['anime1'])
+  })
+
+  it('未知來源的標籤直接使用來源名稱', () => {
+    expect(sourceLabel('anime1')).toBe('anime1')
+    expect(sourceLabel('ani-gamer')).toBe('動畫瘋')
+    expect(sourceLabel('future-site')).toBe('future-site')
   })
 })

@@ -4,7 +4,8 @@ import { filter, map, of, Subscription } from 'rxjs'
 import fp from 'lodash/fp'
 import { Anime, SHARED_BUCKET } from '@/history/types'
 import { isRemoved } from '@/history/merge'
-import { animeUrl, SOURCE_LABEL, sourceOf } from '@/history/source'
+import { animeUrl, sourceLabel, sourceOf } from '@/history/source'
+import { isSourceVisible } from '@/preferences/preferences'
 import { store } from '../redux/store'
 import { Provider } from 'react-redux'
 import { useAppDispatch, useAppSelector } from '../redux/hooks'
@@ -52,7 +53,7 @@ const AnimeCard = ({ bucket, anime }: AnimeCardPayload): JSX.Element => {
               )
             // anime1 沒有封面圖，改用文字佔位
             : <div className='agh-placeholder'><span>{title}</span></div>}
-          {source !== 'ani-gamer' && <span className='agh-source-badge'>{SOURCE_LABEL[source]}</span>}
+          {source !== 'ani-gamer' && <span className='agh-source-badge'>{sourceLabel(source)}</span>}
           <a className='line-gradient' style={{ pointerEvents: 'auto' }} href={href} />
           <i className='btn-delete material-icons-round' data-gtm-category='首頁' data-gtm-event='點擊移除繼續觀看卡片' style={{ pointerEvents: 'auto' }} onClick={() => dispatch(removeAnime(target))}>close</i>
           <div
@@ -105,9 +106,11 @@ interface MainContainerPayload {
 
 const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
   const animeHistory = useAppSelector((state) => state.animeHistory)
+  const preferences = useAppSelector((state) => state.preferences)
   const buckets = userId === null ? [SHARED_BUCKET] : [userId, SHARED_BUCKET]
   const entries = buckets.flatMap((bucket) => (animeHistory[bucket] ?? []).map((anime) => ({ bucket, anime })))
-  const visible = entries.filter(({ anime }) => !isRemoved(anime))
+  // 使用者可以在設定裡隱藏某些網站的紀錄
+  const visible = entries.filter(({ anime }) => !isRemoved(anime) && isSourceVisible(preferences, sourceOf(anime)))
   const byTime = (a: AnimeCardPayload, b: AnimeCardPayload): number => b.anime.timestamp - a.anime.timestamp
   const sorted = [
     ...visible.filter(({ anime }) => anime.isFavorite === true).sort(byTime),
@@ -157,7 +160,8 @@ const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
 
 const init = (pathname: string): Subscription => of(pathname).subscribe(() => {
   // 沒有登入也要顯示，因為 anime1 的紀錄不綁使用者
-  const userId = document.getElementsByClassName('user-id')[0]?.innerHTML ?? null
+  // 與影片頁一致用 textContent，確保兩邊對到同一個 bucket
+  const userId = document.getElementsByClassName('user-id')[0]?.textContent?.trim() ?? null
   const app = document.getElementById('blockContinueWatch') ?? document.getElementById('blockVideoInSeason')
   const container = document.createElement('div')
   app?.after(container)

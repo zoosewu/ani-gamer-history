@@ -1,4 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimeSource } from '@/history/types'
+import { listExtraSources, sourceLabel } from '@/history/source'
+import { isSourceVisible } from '@/preferences/preferences'
 import { AdapterSettings, FieldSpec, importAdapterSettings, TestResult } from '@/sync/adapter'
 import { readClipboard } from '@/sync/clipboard'
 import { cloudAdapters, findCloudAdapter } from '@/sync/cloudAdapters'
@@ -7,14 +10,22 @@ import { copyAdapterSettings, errorMessage, exportJson, importJson, requestCloud
 import { store } from '../redux/store'
 import { useAppDispatch, useAppSelector } from '../redux/hooks'
 import { adapterSettingsSaved, autoSyncSet, syncDisconnected } from '../redux/syncSlice'
+import { sourceVisibilitySet } from '../redux/preferencesSlice'
 import { describeSyncStatus } from './format'
 import './SettingsDialog.css'
 
-export type SettingsPage = 'status' | 'cloud' | 'backup'
+export type SettingsPage = 'status' | 'cloud' | 'display' | 'backup'
 
-const PAGES: Array<{ id: SettingsPage, label: string }> = [
+interface PageItem {
+  id: SettingsPage
+  label: string
+}
+
+// 「顯示」頁只在已經有其他網站的紀錄時出現，未來支援的網站也一樣
+const buildPages = (hasExtraSources: boolean): PageItem[] => [
   { id: 'status', label: '同步狀態' },
   { id: 'cloud', label: '雲端平台' },
+  ...(hasExtraSources ? [{ id: 'display' as const, label: '顯示' }] : []),
   { id: 'backup', label: '備份' }
 ]
 
@@ -218,6 +229,38 @@ const CloudPage = (): JSX.Element => {
   )
 }
 
+const DisplayPage = ({ sources }: { sources: AnimeSource[] }): JSX.Element => {
+  const dispatch = useAppDispatch()
+  const preferences = useAppSelector((state) => state.preferences)
+  return (
+    <div className='agh-page'>
+      <p className='agh-hint'>選擇要在動畫瘋首頁的「本機歷史紀錄」顯示哪些網站的紀錄。隱藏只影響清單顯示，仍會繼續記錄與同步。</p>
+      <dl className='agh-summary'>
+        {sources.map((source) => {
+          const visible = isSourceVisible(preferences, source)
+          return (
+            <Fragment key={source}>
+              <dt>{sourceLabel(source)}</dt>
+              <dd>
+                <label className='agh-toggle'>
+                  <input
+                    type='checkbox'
+                    checked={visible}
+                    aria-label={`在首頁顯示 ${sourceLabel(source)} 的紀錄`}
+                    onChange={(event) => { dispatch(sourceVisibilitySet({ source, visible: event.target.checked })) }}
+                  />
+                  <span className='agh-toggle-track' aria-hidden='true' />
+                  <span>{visible ? '顯示' : '已隱藏'}</span>
+                </label>
+              </dd>
+            </Fragment>
+          )
+        })}
+      </dl>
+    </div>
+  )
+}
+
 const BackupPage = (): JSX.Element => {
   // 不鎖定按鈕：部分瀏覽器取消選檔時不會通知
   const { result, run } = useTask()
@@ -253,7 +296,11 @@ interface SettingsDialogProps {
 export const SettingsDialog = ({ initialPage, onClosed }: SettingsDialogProps): JSX.Element => {
   const ref = useRef<HTMLDialogElement>(null)
   const [page, setPage] = useState(initialPage)
-  const current = PAGES.find((item) => item.id === page) ?? PAGES[0]
+  const animeHistory = useAppSelector((state) => state.animeHistory)
+  const extraSources = useMemo(() => listExtraSources(animeHistory), [animeHistory])
+  const pages = buildPages(extraSources.length > 0)
+  // 目前頁面消失時（例如刪光了其他網站的紀錄）回到第一頁
+  const current = pages.find((item) => item.id === page) ?? pages[0]
 
   useEffect(() => {
     const dialog = ref.current
@@ -276,12 +323,12 @@ export const SettingsDialog = ({ initialPage, onClosed }: SettingsDialogProps): 
       <div className='agh-layout'>
         <nav className='agh-nav'>
           <div className='agh-nav-title'>Ani Gamer History</div>
-          {PAGES.map((item) => (
+          {pages.map((item) => (
             <button
               key={item.id}
               type='button'
-              className={`agh-nav-item${item.id === page ? ' is-active' : ''}`}
-              aria-current={item.id === page ? 'page' : undefined}
+              className={`agh-nav-item${item.id === current.id ? ' is-active' : ''}`}
+              aria-current={item.id === current.id ? 'page' : undefined}
               onClick={() => setPage(item.id)}
             >
               {item.label}
@@ -293,9 +340,10 @@ export const SettingsDialog = ({ initialPage, onClosed }: SettingsDialogProps): 
             <h3 className='agh-title'>{current.label}</h3>
             <button type='button' className='agh-close' aria-label='關閉' onClick={close}>✕</button>
           </header>
-          {page === 'status' && <StatusPage onNavigate={setPage} />}
-          {page === 'cloud' && <CloudPage />}
-          {page === 'backup' && <BackupPage />}
+          {current.id === 'status' && <StatusPage onNavigate={setPage} />}
+          {current.id === 'cloud' && <CloudPage />}
+          {current.id === 'display' && <DisplayPage sources={extraSources} />}
+          {current.id === 'backup' && <BackupPage />}
         </section>
       </div>
     </dialog>

@@ -209,17 +209,25 @@
 }
 
 .agh-toggle {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
 }
 
+/* 透明的 checkbox 疊在軌道正上方：點擊落在真正的控制項上，鍵盤操作也照常 */
 .agh-toggle input {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  top: 50%;
+  left: 0;
+  z-index: 1;
+  width: 40px;
+  height: 22px;
+  margin: 0;
   opacity: 0;
+  cursor: pointer;
+  transform: translateY(-50%);
 }
 
 .agh-toggle-track {
