@@ -29,6 +29,7 @@
 - Token 存在 Tampermonkey 的儲存空間，匯出的 JSON 不包含 Token
 - 每次上傳會在 repository 產生一個 commit，可以在 GitHub 上查看歷史紀錄
 - 請務必使用 Private repository，否則任何人都看得到你的觀看紀錄
+- 各台電腦請使用相同版本的腳本。同步狀態出現「請更新腳本」或「不支援的資料版本」時，代表雲端資料是由較新版本的腳本建立的，請在 Tampermonkey 檢查更新後重新整理頁面；更新前本機紀錄照常可用，更新後會自動合併。
 # 在另一台電腦快速設定
 設定好第一台之後，不必重新申請 Token：
 1. 在「雲端平台」頁按 **複製設定**（Tampermonkey 選單也有「複製同步設定」），平台與 Token 會加密成一段 `AGH1.…` 的字串放進剪貼簿
@@ -45,6 +46,10 @@ npm run dev    # 開發模式
 npm test       # 單元測試
 npm run build  # 產生 dist/ani-gamer-history.user.js
 ```
+測試會從 git tag 取出已發佈的版本檢查資料相容性，clone 後請先執行 `git fetch --tags`。
+
+修改紀錄的資料格式、合併規則或新增網站來源之前，請先閱讀 [資料格式版本（schemaVersion）](docs/schema-version.md)，依其中的規則判斷是否要調高版本號。
+
 新增同步平台：實作 `src/sync/adapter.ts` 的 `CloudAdapterDefinition`，並加入 `src/sync/cloudAdapters.ts`。
 # 發佈
 commit 訊息請使用 [Conventional Commits](https://www.conventionalcommits.org/lang/zh-hant/)（`feat:`、`fix:` 等），版本號與 CHANGELOG 由 release-please 依 commit 自動產生：

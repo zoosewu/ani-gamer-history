@@ -90,3 +90,23 @@ adapter 模式：共用核心處理「資料進來後怎麼合併」與「何時
 - 根因：0.5.0 以前的版本合併時丟掉 `source` / `seriesId`，把 anime1 紀錄寫回成沒有來源的副本；新版視為動畫瘋紀錄，同一筆變兩筆（其中一筆連結錯誤）
 - 修正：不綁使用者的 bucket 裡沒有來源的紀錄視為 anime1，合併回原本那筆並補回 `seriesId`（每次合併都生效，舊版繼續同步也會自動修復）；`normalizeAnime` 保留不認得的來源名稱，避免未來新增網站時重蹈覆轍
 - 驗證：單元測試 97 → 103（回報的真實資料、沒有 source 欄位的副本、副本進度較新、使用者 bucket 不受影響、未知來源保留）；用 0.5.0 tag 的真實合併程式碼與新版輪流同步 5 輪，皆維持一筆且 `seriesId` 保留
+
+## 資料格式版本 2：版本檢查 + 相容性自動化測試（0.8.0）
+規劃：只用「schemaVersion 版本檢查」與「相容性自動化測試」兩個機制處理跨版本相容；決策與調版號規則見 `docs/schema-version.md`。
+
+- [x] 1. 決策文件 `docs/schema-version.md`
+- [x] 2. 相容性測試基礎：從 git tag 取出並打包已發佈版本、fixtures（`Required<Anime>`）、版本 1 凍結資料
+- [x] 3. 版本 2：`migrations.ts`、`SchemaTooNewError`、`parseHistoryAt`，版本太新拒絕、較舊升級
+- [x] 4. 本機儲存依版本分開（`animeHistory` → `animeHistory.v2`），舊欄位升級後合併
+- [x] 5. 同步被擋時提示更新腳本（同步狀態頁、首頁指示）
+- [x] 6. CI `fetch-depth: 0`、.gitignore、lint ignore、readme、CLAUDE.md、lessons
+- [x] 7. 驗證：lint / test / build、故意破壞測試確認會失敗、端對端情境、0.7.1 真實程式碼拒絕新資料
+- 決策：只用「schemaVersion 版本檢查」與「相容性自動化測試」；不採用個案修補（4 個缺口）與「讓不同版本繼續混用」（分區決定來源 + `ext`），理由與調版號規則記在 `docs/schema-version.md`，並從 CLAUDE.md、readme、lessons 指過去
+- 版本 2：資料版本比目前高就丟 `SchemaTooNewError`（不合併、不寫回），比目前低就套 `migrations.ts`；3c93aae 的「`@shared` 沒有來源 → anime1」改成凍結的版本 1 → 2 轉換
+- 本機儲存：`animeHistory`（版本 1）→ `animeHistory.v2`；每次載入升級合併所有舊欄位，只寫目前欄位
+- 提示：同步狀態顯示「無法同步」與「請更新腳本」連結（網址與 userscript 的 updateURL 共用 `src/scriptMeta.ts`）
+- 相容性測試：從 git tag 取出 0.4.0～0.7.1 並用 esbuild 打包，測「舊版拒絕新資料」「新版升級舊版寫出的資料」；同版本號的無損來回與多輪同步測試會在 0.8.0 發佈後自動生效。CI checkout 改 `fetch-depth: 0`
+- 驗證：
+  - lint、tsc、build 通過；單元測試 103 → 128
+  - 故意破壞：`Anime` 加欄位不補測試資料 → tsc 失敗；版本號改回 1 並新增欄位 → 0.4.0～0.7.1 同版本號測試全部失敗並指出遺失欄位（不加欄位時 0.4.0、0.5.0 也會失敗，等於當初若有這套測試就會抓到這次的 bug）；轉換改成不做事 → 5 個舊版的升級測試失敗；淺層 clone 或沒有 tag → 測試檔明確失敗
+  - 端對端 21 → 23 個情境：舊欄位含被剝掉來源的副本時首頁只顯示一筆並寫入新欄位、舊欄位不動；雲端檔案版本 3 時顯示「無法同步／請更新腳本」、沒有 PUT、不合併
