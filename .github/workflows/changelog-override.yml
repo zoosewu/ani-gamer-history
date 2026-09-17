@@ -1,0 +1,46 @@
+name: Changelog Override
+
+# 把 PR 上每個 conventional commit 寫進 PR 描述的 BEGIN_COMMIT_OVERRIDE 區塊。
+# squash 合併後 release-please 會改用這個區塊，同一個 PR 的多個 commit 會各自成為一筆 CHANGELOG。
+# 用 GITHUB_TOKEN 編輯 PR 描述不會再觸發 workflow，所以不會自己觸發自己。
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  sync:
+    # 只處理本 repo 的分支（fork 的 PR 沒有寫入權限），並跳過 release-please 的 Release PR
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !startsWith(github.event.pull_request.head.ref, 'release-please--')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scripts
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Update PR description
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { applyOverride } = require('./.github/scripts/changelog-override.cjs')
+            const pullNumber = context.payload.pull_request.number
+            const params = { owner: context.repo.owner, repo: context.repo.repo, pull_number: pullNumber }
+
+            const commits = await github.paginate(github.rest.pulls.listCommits, { ...params, per_page: 100 })
+            // 重新讀取最新的描述，避免覆蓋剛剛手動修改的內容
+            const { data: pull } = await github.rest.pulls.get(params)
+            const body = applyOverride(pull.body, commits.map((item) => item.commit.message))
+
+            if (body === null) {
+              core.info('CHANGELOG 覆寫區塊已是最新，或使用者手動維護中，不需要更新')
+              return
+            }
+            await github.rest.pulls.update({ ...params, body })
+            core.info(`已依 ${commits.length} 個 commit 更新 CHANGELOG 覆寫區塊`)
