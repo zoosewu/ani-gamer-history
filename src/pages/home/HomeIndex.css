@@ -83,3 +83,16 @@
   line-height: 1.5;
   pointer-events: none;
 }
+
+/*
+ * 巴哈的繼續觀看卡片會把標題寬度扣掉 72px（滑鼠移上去時 86px）留給觀看數。
+ * 本機歷史紀錄沒有觀看數，標題改用完整寬度；多一個 .ani-gamer-history 讓這兩條只作用在我們的區塊。
+ */
+.ani-gamer-history.continue-watch-area .continue-watch-list .continue-watch-card .content-block .content .anime-name {
+  width: 100%;
+}
+
+/* 滑鼠移上去時站方會加上 margin-left: 8px，右側保留相同間距 */
+.ani-gamer-history.continue-watch-area .continue-watch-list .continue-watch-card:hover .content-block .content .anime-name {
+  width: calc(100% - 16px);
+}

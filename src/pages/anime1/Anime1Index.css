@@ -1,15 +1,15 @@
-/* 系列頁、文章頁：書籤掛在標題列最右側，標題文字的起始位置不變 */
+/* 系列頁、文章頁：書籤掛在標題左側 */
 .agh-bookmarked {
   position: relative;
 }
 
 .agh-bookmarked .entry-title {
-  padding-right: 28px;
+  padding-left: 22px;
 }
 
 .agh-bookmarked > .agh-bookmark {
-  top: 0;
-  right: 0;
+  top: 4px;
+  left: 0;
   width: 12px;
   height: 18px;
 }
