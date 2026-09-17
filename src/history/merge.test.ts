@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { Anime, AnimeHistory } from './types'
-import { createSnapshot, isRemoved, isSameHistory, mergeAnime, mergeHistory, normalizeAnime, normalizeHistory, parseSnapshot } from './merge'
+import { Anime, AnimeHistory, SNAPSHOT_APP, SNAPSHOT_SCHEMA_VERSION } from './types'
+import { createSnapshot, isRemoved, isSameHistory, loadHistoryAt, mergeAnime, mergeHistory, normalizeAnime, normalizeHistory, parseSnapshot, SchemaTooNewError } from './merge'
+import { migrations } from './migrations'
 
 const anime = (overrides: Partial<Anime> = {}): Anime => ({
   source: 'ani-gamer',
@@ -172,13 +173,21 @@ describe('parseSnapshot', () => {
     expect(parseSnapshot(JSON.parse(JSON.stringify(snapshot)))).toEqual(snapshot)
   })
 
-  it('接受舊版直接存放的 AnimeHistory', () => {
-    const legacy = { alice: [anime({ isFavorite: false })] }
-    expect(parseSnapshot(legacy)).toEqual(createSnapshot({ alice: [anime()] }, 0))
+  it('接受雲端同步之前直接存放的 AnimeHistory，視為版本 1 升級', () => {
+    const legacy = { alice: [anime({ isFavorite: false })], '@shared': [anime({ source: undefined, title: 'A' })] }
+    expect(parseSnapshot(legacy)).toEqual(createSnapshot({ alice: [anime()], '@shared': [anime({ source: 'anime1', title: 'A' })] }, 0))
   })
 
-  it('拒絕不支援的資料版本', () => {
-    expect(() => parseSnapshot({ app: 'ani-gamer-history', schemaVersion: 99, history: {} })).toThrow('不支援的資料版本')
+  it('資料版本比目前高時拒絕合併，並提示更新腳本', () => {
+    const newer = { app: SNAPSHOT_APP, schemaVersion: SNAPSHOT_SCHEMA_VERSION + 1, exportedAt: 1, history: {} }
+    expect(() => parseSnapshot(newer)).toThrow(SchemaTooNewError)
+    expect(() => parseSnapshot(newer)).toThrow('請先更新腳本')
+  })
+
+  it('版本號不是正整數時拒絕', () => {
+    [0, -1, 1.5, '2', null, undefined].forEach((schemaVersion) => {
+      expect(() => parseSnapshot({ app: SNAPSHOT_APP, schemaVersion, history: {} })).toThrow('不支援的資料版本')
+    })
   })
 
   it('拒絕格式錯誤的資料', () => {
@@ -189,29 +198,55 @@ describe('parseSnapshot', () => {
   })
 })
 
-describe('舊版剝掉來源欄位的副本', () => {
+describe('loadHistoryAt（本機儲存）', () => {
+  it('和雲端一樣檢查版本並升級', () => {
+    expect(() => loadHistoryAt(SNAPSHOT_SCHEMA_VERSION + 1, {})).toThrow(SchemaTooNewError)
+    expect(loadHistoryAt(1, { '@shared': [anime({ source: undefined })] })['@shared'][0].source).toBe('anime1')
+  })
+
+  it('內容維持寬鬆處理，缺少時間的紀錄不會讓整份資料讀不到', () => {
+    const history = loadHistoryAt(SNAPSHOT_SCHEMA_VERSION, { alice: [{ ...anime(), timestamp: undefined }, anime({ title: 'B' })] })
+    expect(history.alice.map((item) => item.title)).toEqual(['B', '葬送的芙莉蓮'])
+  })
+})
+
+describe('升級轉換', () => {
+  it('每個比目前低的版本都有轉換', () => {
+    for (let version = 1; version < SNAPSHOT_SCHEMA_VERSION; version++) {
+      expect(migrations[version], `缺少版本 ${version} 的轉換`).toBeTypeOf('function')
+    }
+  })
+})
+
+describe('版本 1 → 2：舊版剝掉來源欄位的副本', () => {
   // 回報的真實資料：同一筆 anime1 紀錄被 0.5.0 以前的版本剝掉 source 與 seriesId 後同步回來
   const stripped: Anime = { source: 'ani-gamer', id: '29681', title: '暴怒千金發誓復仇。 ～憑藉魔導書之力打垮祖國～', timestamp: 1789615380421, episode: '5b', episodePicUrl: '', animePicUrl: '', videoWatchTime: 1.203466, videoTotalTime: 1425.024 }
   const original: Anime = { ...stripped, source: 'anime1', seriesId: '1959' }
+  const v1 = (history: AnimeHistory): AnimeHistory => parseSnapshot({ app: SNAPSHOT_APP, schemaVersion: 1, exportedAt: 1, history }).history
 
   it('回報的重複資料合併回一筆 anime1 紀錄', () => {
-    expect(normalizeHistory({ '@shared': [stripped, original] })['@shared']).toEqual([normalizeAnime(original)])
+    expect(v1({ '@shared': [stripped, original] })['@shared']).toEqual([normalizeAnime(original)])
   })
 
   it('完全沒有 source 欄位的副本（0.5.0 寫回的原始樣子）也會合併', () => {
     const legacy = { ...stripped, source: undefined }
-    expect(mergeHistory({ '@shared': [original] }, { '@shared': [legacy] })['@shared']).toEqual([normalizeAnime(original)])
+    expect(mergeHistory(v1({ '@shared': [original] }), v1({ '@shared': [legacy] }))['@shared']).toEqual([normalizeAnime(original)])
   })
 
   it('副本的進度比較新時保留較新的進度，seriesId 從另一筆補回', () => {
     const newer = { ...stripped, source: undefined, timestamp: stripped.timestamp + 60000, videoWatchTime: 300 }
-    const merged = mergeHistory({ '@shared': [original] }, { '@shared': [newer] })['@shared']
+    const merged = mergeHistory(v1({ '@shared': [original] }), v1({ '@shared': [newer] }))['@shared']
     expect(merged).toHaveLength(1)
     expect(merged[0]).toMatchObject({ source: 'anime1', seriesId: '1959', videoWatchTime: 300, timestamp: newer.timestamp })
   })
 
-  it('只修復不綁使用者的 bucket，使用者 bucket 裡的動畫瘋紀錄不受影響', () => {
-    expect(normalizeHistory({ tester: [stripped] }).tester[0].source).toBe('ani-gamer')
+  it('只轉換不綁使用者的分區，使用者分區裡的動畫瘋紀錄不受影響', () => {
+    expect(v1({ tester: [stripped] }).tester[0].source).toBe('ani-gamer')
+  })
+
+  it('版本 2 的資料不套用這條轉換', () => {
+    const history = { '@shared': [stripped] }
+    expect(parseSnapshot({ app: SNAPSHOT_APP, schemaVersion: 2, exportedAt: 1, history }).history['@shared'][0].source).toBe('ani-gamer')
   })
 })
 

@@ -12,6 +12,7 @@ import { useAppDispatch, useAppSelector } from '../redux/hooks'
 import { adapterSettingsSaved, autoSyncSet, syncDisconnected } from '../redux/syncSlice'
 import { sourceVisibilitySet } from '../redux/preferencesSlice'
 import { describeSyncStatus } from './format'
+import { UpdateScriptLink } from './UpdateScriptLink'
 import './SettingsDialog.css'
 
 export type SettingsPage = 'status' | 'cloud' | 'display' | 'backup'
@@ -81,7 +82,10 @@ const StatusPage = ({ onNavigate }: { onNavigate: (page: SettingsPage) => void }
           </label>
         </dd>
         <dt>同步狀態</dt>
-        <dd>{describeSyncStatus(sync)}</dd>
+        <dd>
+          {describeSyncStatus(sync)}
+          {!syncing && status.updateRequired && <UpdateScriptLink />}
+        </dd>
       </dl>
       {!syncing && status.message !== '' && <Message result={{ ok: status.ok === true, message: status.message }} />}
       <p className='agh-hint'>開啟首頁時會從雲端取得紀錄；開始看動畫、刪除或切換最愛後會自動上傳。</p>

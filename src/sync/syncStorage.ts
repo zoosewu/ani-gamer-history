@@ -14,10 +14,12 @@ export interface SyncStatus {
   lastSyncAt: number | null
   ok: boolean | null
   message: string
+  // 雲端資料由較新版本的腳本建立，需要更新腳本才能同步
+  updateRequired: boolean
 }
 
 export const defaultSyncSettings: SyncSettings = { adapterId: null, autoSync: true, adapters: {} }
-export const defaultSyncStatus: SyncStatus = { lastSyncAt: null, ok: null, message: '' }
+export const defaultSyncStatus: SyncStatus = { lastSyncAt: null, ok: null, message: '', updateRequired: false }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -36,7 +38,8 @@ export const parseSyncStatus = (value: unknown): SyncStatus => {
   return {
     lastSyncAt: typeof value.lastSyncAt === 'number' ? value.lastSyncAt : null,
     ok: typeof value.ok === 'boolean' ? value.ok : null,
-    message: typeof value.message === 'string' ? value.message : ''
+    message: typeof value.message === 'string' ? value.message : '',
+    updateRequired: value.updateRequired === true
   }
 }
 

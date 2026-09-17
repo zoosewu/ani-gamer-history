@@ -1,4 +1,5 @@
 import { store } from '@/pages/redux/store'
+import { SchemaTooNewError } from '@/history/merge'
 import { mergeHistory } from '@/pages/redux/animeHistorySlice'
 import { syncFinished, syncStarted } from '@/pages/redux/syncSlice'
 import { AdapterSettings, CloudAdapterDefinition, exportAdapterSettings } from './adapter'
@@ -25,16 +26,16 @@ export const getCloudAdapter = (): ReturnType<typeof findCloudAdapter> => findCl
 const runCloudSync = createSingleFlight(async () => {
   const definition = getCloudAdapter()
   if (definition === undefined) {
-    store.dispatch(syncFinished({ ...store.getState().sync.status, ok: false, message: '尚未設定雲端平台' }))
+    store.dispatch(syncFinished({ ...store.getState().sync.status, ok: false, message: '尚未設定雲端平台', updateRequired: false }))
     return
   }
   store.dispatch(syncStarted())
   try {
     const { pushed } = await syncWith(definition.create(store.getState().sync.settings.adapters[definition.id] ?? {}), deps)
-    store.dispatch(syncFinished({ lastSyncAt: Date.now(), ok: true, message: pushed ? '已上傳最新紀錄' : '雲端已是最新' }))
+    store.dispatch(syncFinished({ lastSyncAt: Date.now(), ok: true, message: pushed ? '已上傳最新紀錄' : '雲端已是最新', updateRequired: false }))
   } catch (error) {
     console.error('Cloud sync failed', error)
-    store.dispatch(syncFinished({ lastSyncAt: Date.now(), ok: false, message: errorMessage(error) }))
+    store.dispatch(syncFinished({ lastSyncAt: Date.now(), ok: false, message: errorMessage(error), updateRequired: error instanceof SchemaTooNewError }))
   }
 })
 

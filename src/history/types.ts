@@ -26,7 +26,8 @@ export interface AnimeHistory {
 export const SHARED_BUCKET = '@shared'
 
 export const SNAPSHOT_APP = 'ani-gamer-history'
-export const SNAPSHOT_SCHEMA_VERSION = 1
+// 資料格式版本：資料格式或合併規則一有變動就要加 1，規則見 docs/schema-version.md
+export const SNAPSHOT_SCHEMA_VERSION = 2
 
 export interface HistorySnapshot {
   app: typeof SNAPSHOT_APP
