@@ -1,15 +1,65 @@
-/* anime1 的文章與列表：與動畫瘋分集按鈕相同的設計語言（左側色條 + 右上角角標），範圍收斂在標題列 */
-.agh-marked .entry-header {
+/* 系列頁、文章頁：書籤掛在標題列最右側，標題文字的起始位置不變 */
+.agh-bookmarked {
   position: relative;
-  /* 用 inset box-shadow 而不是 border，避免推動原本的版面 */
-  box-shadow: inset 3px 0 0 var(--agh-mark-color);
-  background: rgba(34, 197, 94, 0.08);
-  padding-left: 12px;
 }
 
-.agh-marked .agh-mark {
+.agh-bookmarked .entry-title {
+  padding-right: 28px;
+}
+
+.agh-bookmarked > .agh-bookmark {
   top: 0;
   right: 0;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 18px;
+}
+
+.agh-bookmark-meta {
+  margin-left: 14px;
+  color: var(--agh-bookmark-ink);
+}
+
+/* 文章頁：打開的不是上次那一集時，提示回到上次的集數 */
+.entry-header a.agh-resume,
+.entry-header a.agh-resume:visited {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 5px 12px 5px 10px;
+  border-radius: 999px;
+  background: #fdf3e2;
+  color: var(--agh-bookmark-ink);
+  font-size: 14px;
+}
+
+.entry-header a.agh-resume:hover,
+.entry-header a.agh-resume:focus-visible {
+  background: #fbe6c3;
+  color: var(--agh-bookmark-ink);
+}
+
+.agh-resume .agh-bookmark {
+  position: static;
+  flex: none;
+  width: 8px;
+  height: 11px;
+}
+
+/* 首頁動畫列表：書籤掛在該列上緣，名稱後面接看到的集數 */
+#table-list td.agh-list-bookmarked {
+  position: relative;
+  padding-left: 26px;
+}
+
+#table-list td.agh-list-bookmarked > .agh-bookmark {
+  top: 0;
+  left: 8px;
+}
+
+.agh-list-note {
+  margin-left: 8px;
+  color: var(--agh-bookmark-ink);
+  font-size: 12.5px;
+  white-space: nowrap;
 }

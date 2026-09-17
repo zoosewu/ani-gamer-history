@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Anime } from '@/history/types'
-import { matchesRecord, parseApiReq, parsePostId, stripEpisodeSuffix } from './parse'
+import { matchesRecord, parseApiReq, parsePostId, parseSeriesIdFromHref, stripEpisodeSuffix } from './parse'
 
 const record = (overrides: Partial<Anime> = {}): Anime => ({
   source: 'anime1',
@@ -32,6 +32,18 @@ describe('parseApiReq', () => {
     expect(parseApiReq('')).toBeUndefined()
     expect(parseApiReq('not-json')).toBeUndefined()
     expect(parseApiReq(encodeURIComponent(JSON.stringify({ e: '24' })))).toBeUndefined()
+  })
+})
+
+describe('parseSeriesIdFromHref', () => {
+  it('從列表連結取出系列 id', () => {
+    expect(parseSeriesIdFromHref('//anime1.me/?cat=1898')).toBe('1898')
+    expect(parseSeriesIdFromHref('https://anime1.me/?page=2&cat=42')).toBe('42')
+  })
+
+  it('不是系列連結時回傳空字串', () => {
+    expect(parseSeriesIdFromHref('https://anime1.me/30152')).toBe('')
+    expect(parseSeriesIdFromHref('')).toBe('')
   })
 })
 

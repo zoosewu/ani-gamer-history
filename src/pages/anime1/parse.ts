@@ -23,6 +23,9 @@ export const parseApiReq = (value: string | null | undefined): { seriesId: strin
   return { seriesId, episode: typeof e === 'string' || typeof e === 'number' ? String(e) : '' }
 }
 
+// 首頁列表的連結：//anime1.me/?cat=1898
+export const parseSeriesIdFromHref = (href: string): string => /[?&]cat=(\d+)/.exec(href)?.[1] ?? ''
+
 // <article id="post-30152">
 export const parsePostId = (articleId: string): string => /^post-(\d+)$/.exec(articleId.trim())?.[1] ?? ''
 
