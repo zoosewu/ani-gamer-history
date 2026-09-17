@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/zoosewu/ani-gamer-history/compare/0.6.0...0.7.0) (2026-09-17)
+
+
+### 新增功能
+
+* **marker:** bookmark-style last watched marker on 動畫瘋 and anime1 ([#13](https://github.com/zoosewu/ani-gamer-history/issues/13)) ([0122add](https://github.com/zoosewu/ani-gamer-history/commit/0122add04f2cde64529f9daec45b711363fda7ee))
+
 ## [0.6.0](https://github.com/zoosewu/ani-gamer-history/compare/0.5.0...0.6.0) (2026-09-17)
 
 
