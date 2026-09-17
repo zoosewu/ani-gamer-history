@@ -75,7 +75,7 @@ const render = (): void => {
   renderList(records)
 }
 
-// 系列頁、文章頁：書籤掛在標題列最右側，日期旁補上看到的時間
+// 系列頁、文章頁：書籤掛在標題左側，日期旁補上看到的時間
 const renderArticles = (records: Anime[]): void => {
   document.querySelectorAll('article').forEach((article) => {
     const header = article.querySelector('.entry-header')
