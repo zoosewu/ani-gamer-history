@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/zoosewu/ani-gamer-history/compare/0.5.0...0.6.0) (2026-09-17)
+
+
+### 新增功能
+
+* **anime1:** track anime1 and fix the last-watched episode marker ([#11](https://github.com/zoosewu/ani-gamer-history/issues/11)) ([b7b7602](https://github.com/zoosewu/ani-gamer-history/commit/b7b7602fb59da128e15c26f3575b4e94feae066c))
+
 ## [0.5.0](https://github.com/zoosewu/ani-gamer-history/compare/0.4.0...0.5.0) (2026-09-16)
 
 
