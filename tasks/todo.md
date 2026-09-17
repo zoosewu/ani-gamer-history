@@ -81,3 +81,7 @@ adapter 模式：共用核心處理「資料進來後怎麼合併」與「何時
 - `.github/scripts/changelog-override.cjs`：略過非 conventional、`fixup!`/`squash!`、重複訊息；保留 `BREAKING CHANGE`；有標記註解才由 workflow 維護，手動區塊不覆蓋；只處理本 repo 分支、跳過 Release PR
 - 驗證：單元測試 11 個；以 release-please 17.11.2 的 `parseConventionalCommits` 驗證——沒有覆寫時 1 筆、用本 repo 真實的兩個 commit 自動覆寫後 2 筆、重大變更正確標記、手動覆寫優先
 - 上線後修正：PR #15 的描述文字提到關鍵字，導致腳本誤判為手動區塊、release-please 也會讀成 0 筆。改為區塊放在描述最上方（`<details>` 收合）、手動區塊須為單獨成行的開始與結束標記；以 PR #15 真實描述驗證修正後為 1 筆
+
+## 追加：本機歷史紀錄卡片標題用完整寬度（2026-09-17）
+- 巴哈的繼續觀看卡片把標題寬度扣掉 72px（hover 時 86px）留給觀看數；本機歷史紀錄沒有觀看數，在 `.ani-gamer-history` 範圍內覆寫為完整寬度（hover 時左右各留 8px）
+- 驗證（真實巴哈 CSS）：標題寬度 145px → 217px（= 卡片內容寬度）；hover 131px → 201px，左右間距 8px / 8px
