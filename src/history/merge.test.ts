@@ -26,11 +26,11 @@ const createRandom = (seed: number) => (): number => {
 const randomHistory = (random: () => number): AnimeHistory => {
   const pick = <T>(items: T[]): T => items[Math.floor(random() * items.length)]
   const history: AnimeHistory = {}
-  for (const userId of ['alice', 'bob']) {
+  for (const userId of ['alice', 'bob', '@shared']) {
     if (random() < 0.2) continue
     history[userId] = Array.from({ length: Math.floor(random() * 4) }, () => anime({
       title: pick(['A', 'B', 'C']),
-      source: pick(['ani-gamer', 'anime1', undefined]),
+      source: pick(['ani-gamer', 'anime1', 'future-site' as Anime['source'], undefined]),
       seriesId: pick([undefined, 's1']),
       id: pick(['1', '2']),
       episode: pick(['1', '2']),
@@ -186,5 +186,42 @@ describe('parseSnapshot', () => {
     expect(() => parseSnapshot({ alice: 'oops' })).toThrow('不是陣列')
     expect(() => parseSnapshot({ alice: [{ title: 'A' }] })).toThrow('timestamp')
     expect(() => parseSnapshot({ alice: [null] })).toThrow('不是物件')
+  })
+})
+
+describe('舊版剝掉來源欄位的副本', () => {
+  // 回報的真實資料：同一筆 anime1 紀錄被 0.5.0 以前的版本剝掉 source 與 seriesId 後同步回來
+  const stripped: Anime = { source: 'ani-gamer', id: '29681', title: '暴怒千金發誓復仇。 ～憑藉魔導書之力打垮祖國～', timestamp: 1789615380421, episode: '5b', episodePicUrl: '', animePicUrl: '', videoWatchTime: 1.203466, videoTotalTime: 1425.024 }
+  const original: Anime = { ...stripped, source: 'anime1', seriesId: '1959' }
+
+  it('回報的重複資料合併回一筆 anime1 紀錄', () => {
+    expect(normalizeHistory({ '@shared': [stripped, original] })['@shared']).toEqual([normalizeAnime(original)])
+  })
+
+  it('完全沒有 source 欄位的副本（0.5.0 寫回的原始樣子）也會合併', () => {
+    const legacy = { ...stripped, source: undefined }
+    expect(mergeHistory({ '@shared': [original] }, { '@shared': [legacy] })['@shared']).toEqual([normalizeAnime(original)])
+  })
+
+  it('副本的進度比較新時保留較新的進度，seriesId 從另一筆補回', () => {
+    const newer = { ...stripped, source: undefined, timestamp: stripped.timestamp + 60000, videoWatchTime: 300 }
+    const merged = mergeHistory({ '@shared': [original] }, { '@shared': [newer] })['@shared']
+    expect(merged).toHaveLength(1)
+    expect(merged[0]).toMatchObject({ source: 'anime1', seriesId: '1959', videoWatchTime: 300, timestamp: newer.timestamp })
+  })
+
+  it('只修復不綁使用者的 bucket，使用者 bucket 裡的動畫瘋紀錄不受影響', () => {
+    expect(normalizeHistory({ tester: [stripped] }).tester[0].source).toBe('ani-gamer')
+  })
+})
+
+describe('不認得的來源', () => {
+  it('保留原本的名稱，不會被改成動畫瘋', () => {
+    expect(normalizeAnime(anime({ source: 'future-site' as Anime['source'] })).source).toBe('future-site')
+  })
+
+  it('和同名的 anime1 紀錄各自獨立', () => {
+    const merged = mergeHistory({ '@shared': [anime({ source: 'anime1', title: 'X' }), anime({ source: 'future-site' as Anime['source'], title: 'X' })] })
+    expect(merged['@shared'].map((item) => item.source)).toEqual(['anime1', 'future-site'])
   })
 })

@@ -1,4 +1,4 @@
-import { Anime, AnimeHistory, AnimeSource, HistorySnapshot, SNAPSHOT_APP, SNAPSHOT_SCHEMA_VERSION } from './types'
+import { Anime, AnimeHistory, AnimeSource, HistorySnapshot, SHARED_BUCKET, SNAPSHOT_APP, SNAPSHOT_SCHEMA_VERSION } from './types'
 import { animeKey, DEFAULT_SOURCE, sourceOf } from './source'
 
 // 合併規則（交換律、結合律、冪等）：
@@ -16,7 +16,9 @@ const text = (value: unknown): string => typeof value === 'string' ? value : ''
 
 // 固定屬性順序並去除無意義欄位，讓 JSON.stringify 可以直接比較內容
 export const normalizeAnime = (anime: Anime): Anime => {
-  const source: AnimeSource = anime.source === 'anime1' ? 'anime1' : DEFAULT_SOURCE
+  // 不認得的來源（未來版本新增的網站）保留原名，不能改成動畫瘋，否則同步回去就會變成另一筆紀錄
+  const rawSource: unknown = anime.source
+  const source = (typeof rawSource === 'string' && rawSource !== '' ? rawSource : DEFAULT_SOURCE) as AnimeSource
   const normalized: Anime = {
     source,
     id: text(anime.id),
@@ -85,10 +87,19 @@ const compareAnime = (a: Anime, b: Anime): number => {
   return sourceOf(a) < sourceOf(b) ? -1 : 1
 }
 
-const mergeList = (lists: Anime[][]): Anime[] => {
+// 0.5.0 以前的版本合併時會丟掉不認得的 source / seriesId，把 anime1 紀錄寫回成「沒有來源」的副本，
+// 新版再合併時就會變成動畫瘋、anime1 各一筆。動畫瘋的紀錄一定存在使用者自己的 bucket，
+// 所以不綁使用者的 bucket 裡沒有來源的紀錄，都是被剝掉欄位的 anime1 紀錄：改回 anime1 後會和原本那筆合併，
+// seriesId 也會從另一邊補回。只要還有舊版在同步，這個修復每次合併都會生效。
+// 之後若新增其他不綁使用者的來源，需要重新檢視這條規則。
+const repairStrippedSource = (bucket: string, anime: Anime): Anime =>
+  bucket === SHARED_BUCKET && sourceOf(anime) === DEFAULT_SOURCE ? { ...anime, source: 'anime1' } : anime
+
+const mergeList = (bucket: string, lists: Anime[][]): Anime[] => {
   const byKey = new Map<string, Anime>()
-  lists.flat().forEach((anime) => {
-    if (anime.title === '') return // 抓不到標題的紀錄無法辨識，直接捨棄
+  lists.flat().forEach((input) => {
+    if (input.title === '') return // 抓不到標題的紀錄無法辨識，直接捨棄
+    const anime = repairStrippedSource(bucket, input)
     const key = animeKey(anime)
     const existing = byKey.get(key)
     byKey.set(key, existing === undefined ? normalizeAnime(anime) : mergeAnime(existing, anime))
@@ -100,7 +111,7 @@ export const mergeHistory = (...histories: AnimeHistory[]): AnimeHistory => {
   const userIds = [...new Set(histories.flatMap((history) => Object.keys(history)))].sort()
   return Object.fromEntries(userIds.map((userId) => [
     userId,
-    mergeList(histories.map((history) => history[userId] ?? []))
+    mergeList(userId, histories.map((history) => history[userId] ?? []))
   ]))
 }
 
