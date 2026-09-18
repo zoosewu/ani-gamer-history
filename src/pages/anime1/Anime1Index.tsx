@@ -3,6 +3,7 @@ import { isRemoved } from '@/history/merge'
 import { sourceOf } from '@/history/source'
 import { describeProgress, formatPlaybackTime } from '@/history/time'
 import { observeOnMutation } from '@/util'
+import { isMarkerVisible } from '@/preferences/preferences'
 import { filter } from 'rxjs'
 import { store } from '../redux/store'
 import { recordWatch } from '../redux/animeHistorySlice'
@@ -44,8 +45,12 @@ const trackPlayback = (): void => {
 const isOwnMutation = (mutation: MutationRecord): boolean =>
   [...mutation.addedNodes, ...mutation.removedNodes].every((node) => node instanceof Element && node.hasAttribute(OWN))
 
-const anime1Records = (): Anime[] => (store.getState().animeHistory[SHARED_BUCKET] ?? [])
-  .filter((anime) => sourceOf(anime) === 'anime1' && !isRemoved(anime))
+// 要畫標記的紀錄；在設定關閉標記時回傳空陣列，已畫上的標記會在下次重畫時移除
+const anime1Records = (): Anime[] => {
+  const { animeHistory, preferences } = store.getState()
+  if (!isMarkerVisible(preferences, 'anime1')) return []
+  return (animeHistory[SHARED_BUCKET] ?? []).filter((anime) => sourceOf(anime) === 'anime1' && !isRemoved(anime))
+}
 
 const create = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text = ''): HTMLElementTagNameMap[K] => {
   const element = document.createElement(tag)
