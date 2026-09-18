@@ -19,8 +19,8 @@ export interface ReleasedSnapshot {
 
 // 每個 tag 的 src/history/merge.ts 與 types.ts 必須提供這些匯出；之後若搬移或改名，要在這裡依版本對應
 interface ReleasedModule {
-  DATA_VERSION?: string // 0.9.0 起
-  SNAPSHOT_SCHEMA_VERSION?: number // 0.8.0 以前
+  DATA_VERSION?: string // 0.10.0 起
+  SNAPSHOT_SCHEMA_VERSION?: number // 0.9.0 以前
   parseSnapshot: (value: unknown) => ReleasedSnapshot
   createSnapshot: (history: AnimeHistory, exportedAt?: number) => ReleasedSnapshot
   mergeHistory: (...histories: AnimeHistory[]) => AnimeHistory

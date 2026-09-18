@@ -33,7 +33,7 @@ export const DATA_VERSION = '2.0.0'
 export interface HistorySnapshot {
   app: typeof SNAPSHOT_APP
   dataVersion: string
-  // 給 0.8.0 以前的腳本看的整數版本，新腳本只看 dataVersion
+  // 給 0.9.0 以前的腳本看的整數版本，新腳本只看 dataVersion
   schemaVersion: number
   exportedAt: number
   history: AnimeHistory

@@ -154,7 +154,7 @@ export class SchemaTooNewError extends Error {
 // 沒有包裝的 AnimeHistory 是雲端同步之前的格式
 const LEGACY_RAW_VERSION: DataVersion = { major: 1, minor: 0, patch: 0 }
 
-// 讀出 snapshot 的資料版本：有 dataVersion 用它，0.8.0 以前的資料只有整數 schemaVersion
+// 讀出 snapshot 的資料版本：有 dataVersion 用它，0.9.0 以前的資料只有整數 schemaVersion
 const readDataVersion = (snapshot: Record<string, unknown>): DataVersion => {
   if (snapshot.dataVersion !== undefined) {
     const version = parseDataVersion(snapshot.dataVersion)

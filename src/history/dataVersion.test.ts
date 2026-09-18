@@ -24,7 +24,7 @@ describe('isNewerThanSupported', () => {
 })
 
 describe('legacySchemaVersion', () => {
-  it('2.0.x 讓 0.8.0 照常讀取，之後一律讓它拒絕', () => {
+  it('2.0.x 讓 0.8.0、0.9.0 照常讀取，之後一律讓它拒絕', () => {
     expect(legacySchemaVersion({ major: 2, minor: 0, patch: 4 })).toBe(2)
     expect(legacySchemaVersion({ major: 2, minor: 1, patch: 0 })).toBe(3)
     expect(legacySchemaVersion({ major: 3, minor: 0, patch: 0 })).toBe(3)

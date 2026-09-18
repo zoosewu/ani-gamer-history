@@ -6,7 +6,7 @@ import { DataVersion } from './dataVersion'
 // 版本太新的資料一律拒絕使用（見 docs/schema-version.md）
 export const LOCAL_HISTORY_KEY = 'history'
 
-// 0.8.0 以前的欄位：讀出來升級後併進 LOCAL_HISTORY_KEY，再刪掉
+// 0.9.0 以前的欄位：讀出來升級後併進 LOCAL_HISTORY_KEY，再刪掉
 export const LEGACY_KEYS: ReadonlyArray<{ key: string, version: DataVersion }> = [
   { key: 'animeHistory', version: { major: 1, minor: 0, patch: 0 } },
   { key: 'animeHistory.v2', version: { major: 2, minor: 0, patch: 0 } }

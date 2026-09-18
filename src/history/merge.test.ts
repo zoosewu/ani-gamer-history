@@ -179,7 +179,7 @@ describe('parseSnapshot', () => {
     expect(parseSnapshot(legacy)).toEqual(createSnapshot({ alice: [anime()], '@shared': [anime({ source: 'anime1', title: 'A' })] }, 0))
   })
 
-  it('寫出資料版本，以及給 0.8.0 以前的腳本看的整數版本', () => {
+  it('寫出資料版本，以及給 0.9.0 以前的腳本看的整數版本', () => {
     const snapshot = createSnapshot({}, 1)
     expect(snapshot.dataVersion).toBe(DATA_VERSION)
     expect(snapshot.schemaVersion).toBe(2)
@@ -200,7 +200,7 @@ describe('parseSnapshot', () => {
     expect(parseSnapshot({ app: SNAPSHOT_APP, dataVersion: `${major}.${minor}.${patch + 1}`, schemaVersion: 2, exportedAt: 1, history }).history).toEqual(normalizeHistory(history))
   })
 
-  it('沒有 dataVersion 的資料（0.8.0 以前）用整數 schemaVersion 判斷', () => {
+  it('沒有 dataVersion 的資料（0.9.0 以前）用整數 schemaVersion 判斷', () => {
     expect(() => parseSnapshot({ app: SNAPSHOT_APP, schemaVersion: CURRENT_DATA_VERSION.major + 1, history: {} })).toThrow(SchemaTooNewError)
     expect(parseSnapshot({ app: SNAPSHOT_APP, schemaVersion: 2, exportedAt: 1, history: { alice: [anime()] } }).history.alice).toHaveLength(1)
   })

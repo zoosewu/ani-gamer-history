@@ -36,7 +36,7 @@ describe('readLocalSnapshot', () => {
     expect(local).toMatchObject({ lockedBy: null, legacyKeys: ['animeHistory'], changed: true })
   })
 
-  it('0.8.0 的 animeHistory.v2 與更舊的欄位都併進來', () => {
+  it('0.8.0、0.9.0 的 animeHistory.v2 與更舊的欄位都併進來', () => {
     const local = readLocalSnapshot(storage({
       animeHistory: { tester: [anime({ source: 'ani-gamer', title: '葬送的芙莉蓮' })] },
       'animeHistory.v2': { '@shared': [anime()] }

@@ -26,14 +26,14 @@ const parsed = parseDataVersion(DATA_VERSION)
 if (parsed === null) throw new Error(`DATA_VERSION 格式錯誤：${DATA_VERSION}`)
 export const CURRENT_DATA_VERSION: DataVersion = parsed
 
-// 還沒有 dataVersion 的資料（0.8.0 以前）只有整數 schemaVersion，視為 N.0.0
+// 還沒有 dataVersion 的資料（0.9.0 以前）只有整數 schemaVersion，視為 N.0.0
 export const fromSchemaVersion = (schemaVersion: number): DataVersion => ({ major: schemaVersion, minor: 0, patch: 0 })
 
 // MAJOR.MINOR 比目前新就不能讀；只有 PATCH 比較新時可以
 export const isNewerThanSupported = (version: DataVersion, supported = CURRENT_DATA_VERSION): boolean =>
   version.major > supported.major || (version.major === supported.major && version.minor > supported.minor)
 
-// 給 0.4.0～0.8.0 看的整數版本：它們只認 schemaVersion。
-// 資料還是 2.0.x 時寫 2，讓 0.8.0 照常同步；MINOR 或 MAJOR 往上調之後一律寫 3，讓它們拒絕並提示更新
+// 給 0.4.0～0.9.0 看的整數版本：它們只認 schemaVersion。
+// 資料還是 2.0.x 時寫 2，讓 0.8.0、0.9.0 照常同步；MINOR 或 MAJOR 往上調之後一律寫 3，讓它們拒絕並提示更新
 export const legacySchemaVersion = (version = CURRENT_DATA_VERSION): number =>
   version.major === 2 && version.minor === 0 ? 2 : 3

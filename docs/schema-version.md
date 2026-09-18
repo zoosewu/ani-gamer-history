@@ -35,7 +35,7 @@
 - **0.4.0～0.7.1 的 `syncEngine.syncWith` 完全相同**：先 `load()`，丟錯就不會 `save()`。所以雲端檔案的版本號提高後，這些版本會停止同步，不會覆寫雲端。
 - **舊版的錯誤訊息是「不支援的資料版本：N」**：這段文字改不動，只能在 readme 說明看到時要更新腳本。
 - **舊版讀寫本機儲存時完全不檢查版本號**：GM storage 的 `animeHistory` 欄位直接存 `AnimeHistory`，沒有包裝。
-- **0.8.0**：雲端只看整數 `schemaVersion`（大於 2 就拒絕並提示「請先更新腳本」）；本機直接讀寫 `animeHistory.v2`，同樣沒有包裝、不檢查版本。
+- **0.8.0、0.9.0**：雲端只看整數 `schemaVersion`（大於 2 就拒絕並提示「請先更新腳本」）；本機直接讀寫 `animeHistory.v2`，同樣沒有包裝、不檢查版本。
 - **版本 1 的資料變形是有限的**：只可能由 0.4.0～0.7.1 寫出，來源只有 `ani-gamer`（使用者 id 分區）和 `anime1`（`@shared` 分區）。
 
 ## 沒有採用的方案
@@ -66,11 +66,11 @@
 ```
 
 - **`dataVersion`**：資料版本，新腳本只看這個欄位。
-- **`schemaVersion`**：只給 0.4.0～0.8.0 看的整數閘門，由 `legacySchemaVersion()` 算出：
-  - 資料是 `2.0.x` 時寫 `2`，0.8.0 讀得懂，照常同步。
-  - MINOR 或 MAJOR 往上調之後一律寫 `3`，0.8.0 會拒絕並提示「請先更新腳本」，0.4.0～0.7.1 本來就只接受 `1`。
+- **`schemaVersion`**：只給 0.4.0～0.9.0 看的整數閘門，由 `legacySchemaVersion()` 算出：
+  - 資料是 `2.0.x` 時寫 `2`，0.8.0、0.9.0 讀得懂，照常同步。
+  - MINOR 或 MAJOR 往上調之後一律寫 `3`，0.8.0、0.9.0 會拒絕並提示「請先更新腳本」，0.4.0～0.7.1 本來就只接受 `1`。
   - 之後不會再用它表示其他意義。
-- **讀到沒有 `dataVersion` 的資料**（0.8.0 以前寫的）：整數 `schemaVersion` N 視為 `N.0.0`；連包裝都沒有的舊格式視為 `1.0.0`。
+- **讀到沒有 `dataVersion` 的資料**（0.9.0 以前寫的）：整數 `schemaVersion` N 視為 `N.0.0`；連包裝都沒有的舊格式視為 `1.0.0`。
 
 ### 2. 版本檢查
 
@@ -86,14 +86,14 @@
 實作在 `src/history/localSnapshot.ts`、`localStore.ts`、`persistence.ts`：
 
 - **只用一個 GM 欄位 `history`**，內容就是上面的格式。之後調資料版本時欄位名稱不變，只改裡面的 `dataVersion`。
-- **不沿用 `animeHistory.v2` 的名稱**：0.8.0 會把它當成沒有包裝的紀錄直接合併，寫進包裝過的格式會被更新前開著的 0.8.0 分頁弄壞。
+- **不沿用 `animeHistory.v2` 的名稱**：0.8.0、0.9.0 會把它當成沒有包裝的紀錄直接合併，寫進包裝過的格式會被更新前開著的舊分頁弄壞。
 - **舊欄位遷移後刪除**：載入時只要 `animeHistory`（1.0.0）或 `animeHistory.v2`（2.0.0）還在，就升級後併進 `history`，再用 `GM_deleteValue` 刪掉。更新前開著的舊分頁如果又寫出舊欄位，下次載入時會再被收進來並刪除，最後永遠只剩 `history`。
 - **本機資料比腳本新時鎖定**（store 的 `storage.lockedBy`）：
   - 不讀取、不合併、不寫入本機資料，也不動舊欄位。
   - 不做雲端同步，也不能匯入、匯出 JSON（匯出的會是空的）。
   - 首頁「本機歷史紀錄」不顯示清單，改顯示提示與「請更新腳本」連結；同步指示與設定 dialog 也會提示。
   - **已經開著的分頁也會鎖定**：收到其他分頁寫入較新版本資料的通知時立刻鎖定，之後看動畫也不會蓋掉新資料。這正是 0.7.1 重複紀錄的成因：開著的舊分頁用舊程式把新資料寫回去。
-- **已發佈版本的限制**：0.4.0～0.8.0 不認得 `history`，新版刪掉它們的欄位後，它們只會看到空的本機紀錄，不會碰到新資料；雲端則由 `schemaVersion` 擋住。從 0.9.0 起的腳本都會檢查 `history` 的 `dataVersion`，之後每次調版號都會自動生效。
+- **已發佈版本的限制**：0.4.0～0.9.0 不認得 `history`，新版刪掉它們的欄位後，它們只會看到空的本機紀錄，不會碰到新資料；雲端則由 `schemaVersion` 擋住。從 0.10.0 起的腳本都會檢查 `history` 的 `dataVersion`，之後每次調版號都會自動生效。
 
 ### 4. 升級轉換的規則
 
@@ -107,14 +107,14 @@
 實作在 `src/history/compat/`，由 `npm test` 執行：`releases.ts` 取出並打包已發佈版本，`fixtures.ts` 是目前格式的完整測試資料，`v1.ts` 是凍結的 1.0 測試資料，`compat.test.ts` 是測試本身。
 
 - **不把舊版程式碼複製進 repo**：測試時用 `git archive` 從每個 tag 取出 `src/`，再用 esbuild 打包（`@/` 指向該 tag 自己的 `src`）。每次發佈都會自動納入。
-- **每個 tag 的資料版本**：有 `DATA_VERSION` 就用它，0.8.0 以前用 `SNAPSHOT_SCHEMA_VERSION` 換算成 `N.0.0`。
+- **每個 tag 的資料版本**：有 `DATA_VERSION` 就用它，0.9.0 以前用 `SNAPSHOT_SCHEMA_VERSION` 換算成 `N.0.0`。
 - **需要完整的 git 歷史與 tag**：淺層 clone 或找不到 tag 時測試直接失敗，不會略過。本機請先 `git fetch --tags`；CI 的 checkout 設定 `fetch-depth: 0`。
 - **依 `MAJOR.MINOR` 比較每個 tag 與目前版本**：
   - **tag 較新**：失敗。
   - **tag 較舊**：tag 必須拒絕目前的資料；該版本的凍結測試資料經過 tag 讀寫一次後（產生真實的變形，例如 0.5.0 會剝掉欄位），目前版本必須升級成預期結果，沒有重複或遺失。
   - **相同**：目前的資料經過 tag 讀寫後必須**完全相同**；本機儲存的路徑也必須無損；輪流合併、更新多輪不能有重複或遺失。
 - **測試資料會強迫跟著型別更新**：`fixtures.ts` 用 `{ [S in AnimeSource]: Required<Anime> }` 為每個來源寫一筆所有欄位都填滿的紀錄。新增欄位或來源時沒有補上，`tsc`（`npm run build`）就會失敗；補上之後，如果同一個 `MAJOR.MINOR` 的已發佈版本會丟掉它，「相同」那組測試就會失敗，提醒你必須調 MINOR 以上。
-- **公開 API 是測試的前提**：每個 tag 的 `src/history/merge.ts` 必須匯出 `parseSnapshot`、`createSnapshot`、`mergeHistory`、`normalizeHistory`，`src/history/types.ts` 必須匯出 `DATA_VERSION`（0.8.0 以前是 `SNAPSHOT_SCHEMA_VERSION`）。之後如果搬移或改名，要在 `releases.ts` 加上依版本的對應。
+- **公開 API 是測試的前提**：每個 tag 的 `src/history/merge.ts` 必須匯出 `parseSnapshot`、`createSnapshot`、`mergeHistory`、`normalizeHistory`，`src/history/types.ts` 必須匯出 `DATA_VERSION`（0.9.0 以前是 `SNAPSHOT_SCHEMA_VERSION`）。之後如果搬移或改名，要在 `releases.ts` 加上依版本的對應。
 
 ## 調資料版本的規則
 
@@ -138,7 +138,7 @@
 
 ## 調資料版本的步驟
 
-1. `src/history/types.ts`：調 `DATA_VERSION`。調 MINOR 或 MAJOR 時，`schemaVersion` 會自動變成 `3`，擋住 0.8.0。
+1. `src/history/types.ts`：調 `DATA_VERSION`。調 MINOR 或 MAJOR 時，`schemaVersion` 會自動變成 `3`，擋住 0.8.0、0.9.0。
 2. 調 MAJOR 時：在 `src/history/migrations.ts` 加上「舊 MAJOR → 新 MAJOR」的轉換，遵守「升級轉換的規則」。
 3. 調 MINOR 或 MAJOR 時：在 `src/history/compat/` 為**舊的** `MAJOR.MINOR` 加一份凍結的測試資料（參考 `v1.ts`：`version` 是舊版本，`upgradedVersion` / `upgraded` 是升級到新版本後應有的內容），並加進 `compat.test.ts` 的 `frozenFixtures`。
 4. 更新這份文件的「已查證的各版本行為」與「版本紀錄」。
@@ -157,4 +157,4 @@
 | 資料版本 | 首次發佈的腳本 | 變更 | 升級轉換 |
 |---|---|---|---|
 | 1.0.0 | 0.4.0 | 雲端同步的第一個格式（當時記為 `schemaVersion: 1`）。0.6.0 起新增 `source`、`seriesId` 與 `@shared` 分區，當時沒有調版號，導致 anime1 重複紀錄 | — |
-| 2.0.0 | 0.8.0 | 開始採用這份文件的策略（0.8.0 記為 `schemaVersion: 2`，0.9.0 起加上 `dataVersion`）；0.9.0 起本機只存一份 `history` | 1 → 2：`@shared` 裡沒有來源或來源是 `ani-gamer` 的紀錄改成 `anime1`（還原被 ≤0.5.0 剝掉來源的副本） |
+| 2.0.0 | 0.8.0 | 開始採用這份文件的策略（0.8.0、0.9.0 記為 `schemaVersion: 2`，0.10.0 起加上 `dataVersion`）；0.10.0 起本機只存一份 `history` | 1 → 2：`@shared` 裡沒有來源或來源是 `ani-gamer` 的紀錄改成 `anime1`（還原被 ≤0.5.0 剝掉來源的副本） |
