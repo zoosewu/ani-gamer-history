@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/zoosewu/ani-gamer-history/compare/0.8.0...0.9.0) (2026-09-18)
+
+
+### 新增功能
+
+* **settings:** add a features page to turn off last-watched markers ([4757f58](https://github.com/zoosewu/ani-gamer-history/commit/4757f588c5864ec006e2b710a6cdafe10f1b64a7))
+
 ## [0.8.0](https://github.com/zoosewu/ani-gamer-history/compare/0.7.1...0.8.0) (2026-09-18)
 
 
