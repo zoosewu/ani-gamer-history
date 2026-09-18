@@ -36,6 +36,7 @@ const anime1 = {
 }
 
 export const v1 = {
+  version: '1.0.0',
   history: {
     tester: [
       // 0.6.0 以後寫出的動畫瘋紀錄
@@ -55,6 +56,7 @@ export const v1 = {
       { source: 'anime1', ...anime1, title: '【我推的孩子】', id: '30500', seriesId: '1800', timestamp: 1789400000000 }
     ]
   },
+  upgradedVersion: '2.0.0',
   upgraded: {
     tester: [
       { source: 'ani-gamer', ...bahamut, isFavorite: true, favoriteTime: 1788000000000, removeTime: 1787000000000 },

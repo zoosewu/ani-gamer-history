@@ -4,21 +4,33 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { build } from 'esbuild'
 import { AnimeHistory } from '../types'
+import { DataVersion, fromSchemaVersion, parseDataVersion } from '../dataVersion'
 
 // 從 git tag 取出已發佈版本真實的紀錄處理程式碼，給相容性測試使用（見 docs/schema-version.md）。
 // tag 不會改變，效果等同把舊版程式碼凍結；每次發佈都會自動納入，不需要手動複製。
 
 export interface ReleasedSnapshot {
   app: string
+  dataVersion?: string
   schemaVersion: number
   exportedAt: number
   history: AnimeHistory
 }
 
 // 每個 tag 的 src/history/merge.ts 與 types.ts 必須提供這些匯出；之後若搬移或改名，要在這裡依版本對應
+interface ReleasedModule {
+  DATA_VERSION?: string // 0.10.0 起
+  SNAPSHOT_SCHEMA_VERSION?: number // 0.9.0 以前
+  parseSnapshot: (value: unknown) => ReleasedSnapshot
+  createSnapshot: (history: AnimeHistory, exportedAt?: number) => ReleasedSnapshot
+  mergeHistory: (...histories: AnimeHistory[]) => AnimeHistory
+  normalizeHistory: (history: AnimeHistory) => AnimeHistory
+}
+
 export interface ReleasedHistory {
   tag: string
-  SNAPSHOT_SCHEMA_VERSION: number
+  // 這個版本讀寫的資料版本
+  dataVersion: DataVersion
   parseSnapshot: (value: unknown) => ReleasedSnapshot
   createSnapshot: (history: AnimeHistory, exportedAt?: number) => ReleasedSnapshot
   mergeHistory: (...histories: AnimeHistory[]) => AnimeHistory
@@ -27,8 +39,10 @@ export interface ReleasedHistory {
 
 const ENTRY = [
   "export { parseSnapshot, createSnapshot, mergeHistory, normalizeHistory } from './src/history/merge'",
-  "export { SNAPSHOT_SCHEMA_VERSION } from './src/history/types'"
+  "export * from './src/history/types'"
 ].join('\n')
+// 打包方式改變時換一個資料夾，避免用到舊的快取
+const BUNDLE_FORMAT = 'b2'
 
 const MISSING_HISTORY = '相容性測試需要完整的 git 歷史與 tag：請執行 git fetch --tags --unshallow（CI 的 checkout 要設定 fetch-depth: 0）'
 
@@ -51,7 +65,7 @@ const compareVersion = (a: string, b: string): number => a.localeCompare(b, 'en'
 // 取出 tag 的 src/ 並打包成單一模組；@/ 指向該 tag 自己的 src，不會混進目前的程式碼
 const bundleRelease = async (root: string, tag: string): Promise<string> => {
   const commit = text('git', ['rev-parse', `${tag}^{commit}`], root)
-  const dir = join(root, '.compat', commit)
+  const dir = join(root, '.compat', `${commit}-${BUNDLE_FORMAT}`)
   const outfile = join(dir, 'history.mjs')
   if (existsSync(outfile)) return outfile
 
@@ -90,8 +104,13 @@ export const loadReleases = async (): Promise<ReleasedHistory[]> => {
 
   const releases: ReleasedHistory[] = []
   for (const tag of tags) {
-    const module = await import(pathToFileURL(await bundleRelease(root, tag)).href) as Omit<ReleasedHistory, 'tag'>
-    releases.push({ ...module, tag })
+    const module = await import(pathToFileURL(await bundleRelease(root, tag)).href) as ReleasedModule
+    const dataVersion = module.DATA_VERSION !== undefined
+      ? parseDataVersion(module.DATA_VERSION)
+      : module.SNAPSHOT_SCHEMA_VERSION !== undefined ? fromSchemaVersion(module.SNAPSHOT_SCHEMA_VERSION) : null
+    if (dataVersion === null) throw new Error(`${tag} 沒有可辨識的資料版本（DATA_VERSION 或 SNAPSHOT_SCHEMA_VERSION）`)
+    const { parseSnapshot, createSnapshot, mergeHistory, normalizeHistory } = module
+    releases.push({ tag, dataVersion, parseSnapshot, createSnapshot, mergeHistory, normalizeHistory })
   }
   return releases
 }

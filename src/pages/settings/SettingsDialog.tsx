@@ -11,6 +11,7 @@ import { store } from '../redux/store'
 import { useAppDispatch, useAppSelector } from '../redux/hooks'
 import { adapterSettingsSaved, autoSyncSet, syncDisconnected } from '../redux/syncSlice'
 import { markerVisibilitySet, sourceVisibilitySet } from '../redux/preferencesSlice'
+import { describeLock } from '../redux/storageSlice'
 import { describeSyncStatus } from './format'
 import { UpdateScriptLink } from './UpdateScriptLink'
 import './SettingsDialog.css'
@@ -56,6 +57,7 @@ const Message = ({ result }: { result: Result }): JSX.Element | null => {
 const StatusPage = ({ onNavigate }: { onNavigate: (page: SettingsPage) => void }): JSX.Element => {
   const dispatch = useAppDispatch()
   const sync = useAppSelector((state) => state.sync)
+  const lockedBy = useAppSelector((state) => state.storage.lockedBy)
   const { settings, status, syncing } = sync
   const definition = findCloudAdapter(settings.adapterId)
 
@@ -86,7 +88,8 @@ const StatusPage = ({ onNavigate }: { onNavigate: (page: SettingsPage) => void }
           {!syncing && status.updateRequired && <UpdateScriptLink />}
         </dd>
       </dl>
-      {!syncing && status.message !== '' && <Message result={{ ok: status.ok === true, message: status.message }} />}
+      {lockedBy !== null && <p className='agh-message is-error' role='status'>{describeLock(lockedBy)}<UpdateScriptLink /></p>}
+      {lockedBy === null && !syncing && status.message !== '' && <Message result={{ ok: status.ok === true, message: status.message }} />}
       <p className='agh-hint'>開啟首頁時會從雲端取得紀錄；開始看動畫、刪除或切換最愛後會自動上傳。</p>
       <div className='agh-actions agh-actions-end'>
         <button type='button' className='agh-button is-primary' disabled={syncing || definition === undefined} onClick={() => { void requestCloudSync('manual') }}>

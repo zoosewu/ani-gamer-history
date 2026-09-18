@@ -3,7 +3,7 @@ import type { PayloadAction } from '@reduxjs/toolkit'
 import { Anime, AnimeHistory, AnimeSource } from '@/history/types'
 import { mergeHistory as merge, normalizeAnime } from '@/history/merge'
 import { sourceOf } from '@/history/source'
-import { readLocalHistory } from '@/history/localStore'
+import { initialLocalHistory } from '@/history/localStore'
 
 export interface RecordWatchPayload {
   userId: string
@@ -30,7 +30,7 @@ const updateAnime = (state: AnimeHistory, { userId, animeTitle, source }: AnimeT
   list[index] = normalizeAnime(update(list[index]))
 }
 
-const initialState: AnimeHistory = readLocalHistory()
+const initialState: AnimeHistory = initialLocalHistory.history
 
 export const animeHistorySlice = createSlice({
   name: 'animeHistory',

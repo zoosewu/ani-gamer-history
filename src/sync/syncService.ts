@@ -2,6 +2,7 @@ import { store } from '@/pages/redux/store'
 import { SchemaTooNewError } from '@/history/merge'
 import { mergeHistory } from '@/pages/redux/animeHistorySlice'
 import { syncFinished, syncStarted } from '@/pages/redux/syncSlice'
+import { describeLock } from '@/pages/redux/storageSlice'
 import { AdapterSettings, CloudAdapterDefinition, exportAdapterSettings } from './adapter'
 import { createJsonFileAdapter } from './adapters/jsonFile'
 import { writeClipboard } from './clipboard'
@@ -40,7 +41,19 @@ const runCloudSync = createSingleFlight(async () => {
 })
 
 // 手動同步一定執行；顯示時與更新後的自動同步，只在已設定平台且沒有暫停時執行
+// 本機資料由較新版本的腳本建立時回傳提示；這個腳本看不懂那份資料，不能同步、匯入或匯出
+export const lockedMessage = (): string | null => {
+  const { lockedBy } = store.getState().storage
+  return lockedBy === null ? null : describeLock(lockedBy)
+}
+
+const assertUnlocked = (): void => {
+  const message = lockedMessage()
+  if (message !== null) throw new Error(message)
+}
+
 export const requestCloudSync = async (reason: SyncReason): Promise<void> => {
+  if (lockedMessage() !== null) return
   const { autoSync } = store.getState().sync.settings
   if (reason !== 'manual' && (!autoSync || getCloudAdapter() === undefined)) return
   await runCloudSync()
@@ -55,11 +68,13 @@ export const scheduleUpdateSync = (): void => {
 }
 
 export const exportJson = async (): Promise<void> => {
+  assertUnlocked()
   await pushTo(createJsonFileAdapter(), deps)
 }
 
 // 回傳是否有匯入（使用者取消選檔時為 false）
 export const importJson = async (): Promise<boolean> => {
+  assertUnlocked()
   const imported = await pullFrom(createJsonFileAdapter(), deps)
   if (imported) scheduleUpdateSync()
   return imported

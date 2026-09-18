@@ -26,12 +26,15 @@ export interface AnimeHistory {
 export const SHARED_BUCKET = '@shared'
 
 export const SNAPSHOT_APP = 'ani-gamer-history'
-// 資料格式版本：資料格式或合併規則一有變動就要加 1，規則見 docs/schema-version.md
-export const SNAPSHOT_SCHEMA_VERSION = 2
+// 資料版本（語意化版號），和腳本版本無關；資料格式或合併規則一有變動就要調，規則見 docs/schema-version.md
+export const DATA_VERSION = '2.0.0'
 
+// 雲端檔案、匯出的 JSON、本機儲存都是這個格式
 export interface HistorySnapshot {
   app: typeof SNAPSHOT_APP
-  schemaVersion: typeof SNAPSHOT_SCHEMA_VERSION
+  dataVersion: string
+  // 給 0.9.0 以前的腳本看的整數版本，新腳本只看 dataVersion
+  schemaVersion: number
   exportedAt: number
   history: AnimeHistory
 }

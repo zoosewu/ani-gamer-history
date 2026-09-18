@@ -12,6 +12,8 @@ import { useAppDispatch, useAppSelector } from '../redux/hooks'
 import { removeAnime, toggleFavorite } from '../redux/animeHistorySlice'
 import { openSettings } from '../settings/openSettings'
 import { SyncIndicator } from '../settings/SyncIndicator'
+import { UpdateScriptLink } from '../settings/UpdateScriptLink'
+import { describeLock } from '../redux/storageSlice'
 import { requestCloudSync } from '@/sync/syncService'
 import './HomeIndex.css'
 
@@ -107,6 +109,7 @@ interface MainContainerPayload {
 const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
   const animeHistory = useAppSelector((state) => state.animeHistory)
   const preferences = useAppSelector((state) => state.preferences)
+  const lockedBy = useAppSelector((state) => state.storage.lockedBy)
   const buckets = userId === null ? [SHARED_BUCKET] : [userId, SHARED_BUCKET]
   const entries = buckets.flatMap((bucket) => (animeHistory[bucket] ?? []).map((anime) => ({ bucket, anime })))
   // 使用者可以在設定裡隱藏某些網站的紀錄
@@ -133,27 +136,30 @@ const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
           </div>
         </div>
       </div>
-      {sorted.length === 0 && <p className='agh-empty'>尚無紀錄</p>}
-      <div
-        id='continue-watch'
-        className='continue-watch-list slick-initialized slick-slider'
-      >
-        <div aria-live='polite' className='slick-list draggable'>
-          <div
-            style={{
-              opacity: '1',
-              width: '100%',
-              transform: 'translate3d(0px, 0px, 0px)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(6, 1fr)',
-              gap: '16px',
-              transition: '1s'
-            }}
-            role='listbox'
-          >{Histories}
+      {lockedBy !== null && <p className='agh-empty'>{describeLock(lockedBy)}<UpdateScriptLink /></p>}
+      {lockedBy === null && sorted.length === 0 && <p className='agh-empty'>尚無紀錄</p>}
+      {lockedBy === null && (
+        <div
+          id='continue-watch'
+          className='continue-watch-list slick-initialized slick-slider'
+        >
+          <div aria-live='polite' className='slick-list draggable'>
+            <div
+              style={{
+                opacity: '1',
+                width: '100%',
+                transform: 'translate3d(0px, 0px, 0px)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(6, 1fr)',
+                gap: '16px',
+                transition: '1s'
+              }}
+              role='listbox'
+            >{Histories}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
