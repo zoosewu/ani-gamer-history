@@ -9,7 +9,7 @@
 3. 顯示歷史紀錄：在首頁的本季新番下面會多一個本機歷史紀錄的列表，會從新到舊排序觀看紀錄。
 4. 移除歷史紀錄：在首頁的本機歷史紀錄動畫右上角可以移除觀看紀錄。(無法復原，請慎用)
 5. 最愛：在首頁的本機歷史紀錄動畫右上角可以加入最愛，最愛會排在列表最前面。
-6. 同步設定：點首頁「本機歷史紀錄」標題右邊的齒輪，或 Tampermonkey 選單的「開啟同步設定」。
+6. 同步設定：點首頁「本機歷史紀錄」標題右邊的齒輪，或 Tampermonkey 選單的「開啟同步設定」。「功能」頁可以關閉上次觀看的書籤。
 # 雲端同步（GitHub Private Repository）
 所有資料合併都在腳本內完成，不需要架設伺服器。
 1. 在 GitHub 建立一個 **Private** repository（例如 `ani-gamer-history-data`）。
@@ -45,6 +45,7 @@ npm ci
 npm run dev    # 開發模式
 npm test       # 單元測試
 npm run build  # 產生 dist/ani-gamer-history.user.js
+npm run test:e2e  # 端對端測試（先 build；第一次請執行 npx playwright install chromium）
 ```
 測試會從 git tag 取出已發佈的版本檢查資料相容性，clone 後請先執行 `git fetch --tags`。
 
@@ -66,5 +67,5 @@ PR 請用 **Squash merge** 合併。一個 PR 可以包含多個 commit：開 PR
 - [ ] 移除整個歷史紀錄
 - [X] 匯入/匯出功能
 - [X] 設定頁面（同步設定）
-- [ ] 設定頁面可以啟用/關閉相關功能
+- [X] 設定頁面可以啟用/關閉相關功能
 - [ ] 其他同步平台
