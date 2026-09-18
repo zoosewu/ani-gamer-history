@@ -49,7 +49,7 @@ npm run test:e2e  # 端對端測試（先 build；第一次請執行 npx playwri
 ```
 測試會從 git tag 取出已發佈的版本檢查資料相容性，clone 後請先執行 `git fetch --tags`。
 
-修改紀錄的資料格式、合併規則或新增網站來源之前，請先閱讀 [資料格式版本（schemaVersion）](docs/schema-version.md)，依其中的規則判斷是否要調高版本號。
+修改紀錄的資料格式、合併規則或新增網站來源之前，請先閱讀 [資料版本（dataVersion）](docs/schema-version.md)，依其中的規則判斷資料版本要調哪一層（MAJOR.MINOR.PATCH）。
 
 新增同步平台：實作 `src/sync/adapter.ts` 的 `CloudAdapterDefinition`，並加入 `src/sync/cloudAdapters.ts`。
 # 發佈
