@@ -1,3 +1,7 @@
+# 資料格式相容性（必讀）
+
+修改 `src/history/` 的資料格式、合併規則，或新增網站來源之前，先讀 `docs/schema-version.md`，依「調版號規則」決定是否調高 `SNAPSHOT_SCHEMA_VERSION`，並照「調版號的步驟」補上升級轉換與凍結的測試資料。
+
 # Task Master AI - Claude Code Integration Guide
 
 ## Essential Commands

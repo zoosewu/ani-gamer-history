@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Anime, AnimeHistory, HistorySnapshot } from '@/history/types'
-import { createSnapshot, mergeHistory } from '@/history/merge'
+import { createSnapshot, mergeHistory, parseSnapshot, SchemaTooNewError } from '@/history/merge'
 import { ConflictError, HistoryAdapter } from './adapter'
 import { createSingleFlight, pullFrom, pushTo, syncWith, SyncDeps } from './syncEngine'
 
@@ -63,6 +63,18 @@ describe('pullFrom / pushTo', () => {
 })
 
 describe('syncWith', () => {
+  it('雲端資料由較新版本建立時丟出錯誤，不合併也不寫回', async () => {
+    const local = createLocal({ alice: [anime('A', 1)] })
+    const adapter = createMemoryAdapter(null)
+    adapter.load = async () => {
+      adapter.loads++
+      return parseSnapshot({ app: 'ani-gamer-history', schemaVersion: 999, exportedAt: 1, history: { alice: [anime('B', 2)] } })
+    }
+    await expect(syncWith(adapter, local)).rejects.toThrow(SchemaTooNewError)
+    expect(adapter.saves).toBe(0)
+    expect(local.history).toEqual(mergeHistory({ alice: [anime('A', 1)] }))
+  })
+
   it('遠端沒有資料時上傳本機資料', async () => {
     const local = createLocal({ alice: [anime('A', 1)] })
     const adapter = createMemoryAdapter(null)

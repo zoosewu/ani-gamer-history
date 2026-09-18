@@ -6,6 +6,7 @@ import AutoImport from 'unplugin-auto-import/vite';
 import { fileURLToPath } from 'url';
 // @ts-ignore
 import pkg from './package.json';
+import { SCRIPT_DOWNLOAD_URL } from './src/scriptMeta';
 // https://vitejs.dev/config/
 export default defineConfig({
   server: { watch: { usePolling: true } },
@@ -25,8 +26,8 @@ export default defineConfig({
         match: ['https://ani.gamer.com.tw/*', 'https://anime1.me/*'],
         connect: ['api.github.com'],
         icon: 'https://i2.bahamut.com.tw/anime/logo.svg',
-        updateURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js',
-        downloadURL: 'https://github.com/zoosewu/ani-gamer-history/releases/latest/download/ani-gamer-history.user.js',
+        updateURL: SCRIPT_DOWNLOAD_URL,
+        downloadURL: SCRIPT_DOWNLOAD_URL,
       },
       build: {
         externalGlobals: {

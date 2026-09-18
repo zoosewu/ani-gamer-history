@@ -12,6 +12,7 @@ export const formatSyncTime = (time: number, now = new Date()): string => {
 export const describeSyncStatus = ({ syncing, status }: Pick<SyncState, 'syncing' | 'status'>): string => {
   if (syncing) return '同步中…'
   if (status.ok === null) return '尚未同步'
+  if (status.updateRequired) return '無法同步'
   const result = status.ok ? '已同步' : '同步失敗'
   return status.lastSyncAt === null ? result : `${result}（${formatSyncTime(status.lastSyncAt)}）`
 }

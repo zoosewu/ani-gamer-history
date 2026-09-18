@@ -1,5 +1,6 @@
 import { Anime, AnimeHistory, AnimeSource, HistorySnapshot, SNAPSHOT_APP, SNAPSHOT_SCHEMA_VERSION } from './types'
 import { animeKey, DEFAULT_SOURCE, sourceOf } from './source'
+import { upgradeHistory } from './migrations'
 
 // 合併規則（交換律、結合律、冪等）：
 // - 觀看進度：取 timestamp 較大者
@@ -16,7 +17,9 @@ const text = (value: unknown): string => typeof value === 'string' ? value : ''
 
 // 固定屬性順序並去除無意義欄位，讓 JSON.stringify 可以直接比較內容
 export const normalizeAnime = (anime: Anime): Anime => {
-  const source: AnimeSource = anime.source === 'anime1' ? 'anime1' : DEFAULT_SOURCE
+  // 不認得的來源（未來版本新增的網站）保留原名，不能改成動畫瘋，否則同步回去就會變成另一筆紀錄
+  const rawSource: unknown = anime.source
+  const source = (typeof rawSource === 'string' && rawSource !== '' ? rawSource : DEFAULT_SOURCE) as AnimeSource
   const normalized: Anime = {
     source,
     id: text(anime.id),
@@ -119,28 +122,58 @@ export const createSnapshot = (history: AnimeHistory, exportedAt = Date.now()): 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-const parseAnime = (value: unknown, where: string): Anime => {
+// 只檢查結構，不正規化：升級轉換要看到原始的欄位
+const readAnime = (value: unknown, where: string): Anime => {
   if (!isRecord(value)) throw new Error(`${where} 不是物件`)
   if (typeof value.title !== 'string') throw new Error(`${where} 缺少 title`)
   if (typeof value.timestamp !== 'number' || !Number.isFinite(value.timestamp)) throw new Error(`${where} 缺少 timestamp`)
-  return normalizeAnime(value as unknown as Anime)
+  return value as unknown as Anime
 }
 
-const parseHistory = (value: unknown): AnimeHistory => {
+const readHistory = (value: unknown): AnimeHistory => {
   if (!isRecord(value)) throw new Error('history 格式錯誤')
-  return normalizeHistory(Object.fromEntries(Object.entries(value).map(([userId, list]) => {
+  return Object.fromEntries(Object.entries(value).map(([userId, list]) => {
     if (!Array.isArray(list)) throw new Error(`使用者 ${userId} 的紀錄不是陣列`)
-    return [userId, list.map((anime, index) => parseAnime(anime, `使用者 ${userId} 第 ${index + 1} 筆`))]
-  })))
+    return [userId, list.map((anime, index) => readAnime(anime, `使用者 ${userId} 第 ${index + 1} 筆`))]
+  }))
 }
 
-// 接受 HistorySnapshot，也接受舊版直接存放的 AnimeHistory
+// 資料由較新版本的腳本建立：不能合併，否則看不懂的部分會被丟掉或改錯後寫回去
+export class SchemaTooNewError extends Error {
+  readonly version: number
+
+  constructor (version: number) {
+    super(`這份資料由較新版本的腳本建立（資料格式版本 ${version}），請先更新腳本`)
+    this.name = 'SchemaTooNewError'
+    this.version = version
+  }
+}
+
+// 版本比目前高就拒絕，比目前低就升級轉換；規則見 docs/schema-version.md
+const checkSchemaVersion = (version: unknown): number => {
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
+    throw new Error(`不支援的資料版本：${String(version)}`)
+  }
+  if (version > SNAPSHOT_SCHEMA_VERSION) throw new SchemaTooNewError(version)
+  return version
+}
+
+// 雲端檔案與 JSON 匯入：檢查版本與結構，有問題就丟錯
+export const parseHistoryAt = (version: unknown, value: unknown): AnimeHistory => {
+  const from = checkSchemaVersion(version)
+  return normalizeHistory(upgradeHistory(from, readHistory(value)) as AnimeHistory)
+}
+
+// 本機儲存：只檢查版本，內容沿用正規化時的寬鬆處理，避免一筆壞資料讓整份紀錄讀不到
+export const loadHistoryAt = (version: number, value: unknown): AnimeHistory => {
+  const from = checkSchemaVersion(version)
+  return normalizeHistory(upgradeHistory(from, value as AnimeHistory) as AnimeHistory)
+}
+
+// 接受 HistorySnapshot，也接受雲端同步之前直接存放的 AnimeHistory（視為版本 1）
 export const parseSnapshot = (value: unknown): HistorySnapshot => {
   if (isRecord(value) && value.app === SNAPSHOT_APP) {
-    if (value.schemaVersion !== SNAPSHOT_SCHEMA_VERSION) {
-      throw new Error(`不支援的資料版本：${String(value.schemaVersion)}`)
-    }
-    return createSnapshot(parseHistory(value.history), finite(value.exportedAt))
+    return createSnapshot(parseHistoryAt(value.schemaVersion, value.history), finite(value.exportedAt))
   }
-  return createSnapshot(parseHistory(value), 0)
+  return createSnapshot(parseHistoryAt(1, value), 0)
 }
