@@ -1,20 +1,26 @@
-import { GM_addValueChangeListener, GM_getValue, GM_setValue } from '$'
+import { GM_addValueChangeListener, GM_deleteValue, GM_getValue, GM_setValue } from '$'
 import { AnimeHistory } from './types'
-import { CURRENT_HISTORY_KEY, parseCurrentHistory, readVersionedHistory } from './versionedStorage'
+import { LocalHistory, LOCAL_HISTORY_KEY, parseLocalHistory, readLocalSnapshot, serializeLocalHistory } from './localSnapshot'
 
-export const readLocalHistory = (): AnimeHistory => {
-  const { history, raw, changed } = readVersionedHistory((key) => GM_getValue<unknown>(key, undefined))
-  // 舊版本欄位升級後有新資料時，立刻寫進目前版本的欄位
-  if (changed) GM_setValue(CURRENT_HISTORY_KEY, raw)
-  return history
+const load = (): LocalHistory => {
+  const local = readLocalSnapshot((key) => GM_getValue<unknown>(key, undefined))
+  // 舊欄位併進來之後只保留一份最新版的資料
+  if (local.changed) GM_setValue(LOCAL_HISTORY_KEY, serializeLocalHistory(local.history))
+  local.legacyKeys.forEach((key) => GM_deleteValue(key))
+  return local
 }
 
-// 只寫目前版本的欄位，舊欄位保持原樣
-export const writeLocalHistory = (raw: string): void => GM_setValue(CURRENT_HISTORY_KEY, raw)
+// 腳本載入時讀一次，紀錄與鎖定狀態都從這裡初始化
+export const initialLocalHistory: LocalHistory = load()
 
-// 只通知其他分頁造成的變更
-export const onRemoteHistoryChange = (listener: (history: AnimeHistory, raw: string) => void): void => {
-  GM_addValueChangeListener(CURRENT_HISTORY_KEY, (_key, _oldValue, newValue, remote) => {
-    if (remote === true && typeof newValue === 'string') listener(parseCurrentHistory(newValue), newValue)
+export const writeLocalHistory = (history: AnimeHistory): void => GM_setValue(LOCAL_HISTORY_KEY, serializeLocalHistory(history))
+
+// 只通知其他分頁造成的變更；資料由較新版本的腳本寫入時通知鎖定
+export const onRemoteHistoryChange = (listeners: { onHistory: (history: AnimeHistory) => void, onLocked: (version: string) => void }): void => {
+  GM_addValueChangeListener(LOCAL_HISTORY_KEY, (_key, _oldValue, newValue, remote) => {
+    if (remote !== true) return
+    const parsed = parseLocalHistory(newValue)
+    if ('lockedBy' in parsed) listeners.onLocked(parsed.lockedBy)
+    else listeners.onHistory(parsed.history)
   })
 }

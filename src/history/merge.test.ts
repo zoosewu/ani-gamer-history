@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { Anime, AnimeHistory, SNAPSHOT_APP, SNAPSHOT_SCHEMA_VERSION } from './types'
+import { Anime, AnimeHistory, DATA_VERSION, SNAPSHOT_APP } from './types'
 import { createSnapshot, isRemoved, isSameHistory, loadHistoryAt, mergeAnime, mergeHistory, normalizeAnime, normalizeHistory, parseSnapshot, SchemaTooNewError } from './merge'
 import { migrations } from './migrations'
+import { CURRENT_DATA_VERSION } from './dataVersion'
 
 const anime = (overrides: Partial<Anime> = {}): Anime => ({
   source: 'ani-gamer',
@@ -178,15 +179,38 @@ describe('parseSnapshot', () => {
     expect(parseSnapshot(legacy)).toEqual(createSnapshot({ alice: [anime()], '@shared': [anime({ source: 'anime1', title: 'A' })] }, 0))
   })
 
-  it('資料版本比目前高時拒絕合併，並提示更新腳本', () => {
-    const newer = { app: SNAPSHOT_APP, schemaVersion: SNAPSHOT_SCHEMA_VERSION + 1, exportedAt: 1, history: {} }
-    expect(() => parseSnapshot(newer)).toThrow(SchemaTooNewError)
-    expect(() => parseSnapshot(newer)).toThrow('請先更新腳本')
+  it('寫出資料版本，以及給 0.8.0 以前的腳本看的整數版本', () => {
+    const snapshot = createSnapshot({}, 1)
+    expect(snapshot.dataVersion).toBe(DATA_VERSION)
+    expect(snapshot.schemaVersion).toBe(2)
   })
 
-  it('版本號不是正整數時拒絕', () => {
+  it('資料的 MAJOR 或 MINOR 比目前新時拒絕合併，並提示更新腳本', () => {
+    const { major, minor } = CURRENT_DATA_VERSION
+    ;[`${major + 1}.0.0`, `${major}.${minor + 1}.0`].forEach((dataVersion) => {
+      const newer = { app: SNAPSHOT_APP, dataVersion, schemaVersion: 3, exportedAt: 1, history: {} }
+      expect(() => parseSnapshot(newer)).toThrow(SchemaTooNewError)
+      expect(() => parseSnapshot(newer)).toThrow(`資料版本 ${dataVersion}），請先更新腳本`)
+    })
+  })
+
+  it('只有 PATCH 比目前新時照常讀取', () => {
+    const { major, minor, patch } = CURRENT_DATA_VERSION
+    const history = { alice: [anime()] }
+    expect(parseSnapshot({ app: SNAPSHOT_APP, dataVersion: `${major}.${minor}.${patch + 1}`, schemaVersion: 2, exportedAt: 1, history }).history).toEqual(normalizeHistory(history))
+  })
+
+  it('沒有 dataVersion 的資料（0.8.0 以前）用整數 schemaVersion 判斷', () => {
+    expect(() => parseSnapshot({ app: SNAPSHOT_APP, schemaVersion: CURRENT_DATA_VERSION.major + 1, history: {} })).toThrow(SchemaTooNewError)
+    expect(parseSnapshot({ app: SNAPSHOT_APP, schemaVersion: 2, exportedAt: 1, history: { alice: [anime()] } }).history.alice).toHaveLength(1)
+  })
+
+  it('版本號格式不對時拒絕', () => {
     [0, -1, 1.5, '2', null, undefined].forEach((schemaVersion) => {
       expect(() => parseSnapshot({ app: SNAPSHOT_APP, schemaVersion, history: {} })).toThrow('不支援的資料版本')
+    })
+    ;['2', '2.0', '02.0.0', '0.1.0', 'v2.0.0', 2].forEach((dataVersion) => {
+      expect(() => parseSnapshot({ app: SNAPSHOT_APP, dataVersion, schemaVersion: 2, history: {} })).toThrow('不支援的資料版本')
     })
   })
 
@@ -200,20 +224,20 @@ describe('parseSnapshot', () => {
 
 describe('loadHistoryAt（本機儲存）', () => {
   it('和雲端一樣檢查版本並升級', () => {
-    expect(() => loadHistoryAt(SNAPSHOT_SCHEMA_VERSION + 1, {})).toThrow(SchemaTooNewError)
-    expect(loadHistoryAt(1, { '@shared': [anime({ source: undefined })] })['@shared'][0].source).toBe('anime1')
+    expect(() => loadHistoryAt({ ...CURRENT_DATA_VERSION, minor: CURRENT_DATA_VERSION.minor + 1 }, {})).toThrow(SchemaTooNewError)
+    expect(loadHistoryAt({ major: 1, minor: 0, patch: 0 }, { '@shared': [anime({ source: undefined })] })['@shared'][0].source).toBe('anime1')
   })
 
   it('內容維持寬鬆處理，缺少時間的紀錄不會讓整份資料讀不到', () => {
-    const history = loadHistoryAt(SNAPSHOT_SCHEMA_VERSION, { alice: [{ ...anime(), timestamp: undefined }, anime({ title: 'B' })] })
+    const history = loadHistoryAt(CURRENT_DATA_VERSION, { alice: [{ ...anime(), timestamp: undefined }, anime({ title: 'B' })] })
     expect(history.alice.map((item) => item.title)).toEqual(['B', '葬送的芙莉蓮'])
   })
 })
 
 describe('升級轉換', () => {
-  it('每個比目前低的版本都有轉換', () => {
-    for (let version = 1; version < SNAPSHOT_SCHEMA_VERSION; version++) {
-      expect(migrations[version], `缺少版本 ${version} 的轉換`).toBeTypeOf('function')
+  it('每個比目前低的 MAJOR 都有轉換', () => {
+    for (let version = 1; version < CURRENT_DATA_VERSION.major; version++) {
+      expect(migrations[version], `缺少 MAJOR ${version} 的轉換`).toBeTypeOf('function')
     }
   })
 })
@@ -246,7 +270,7 @@ describe('版本 1 → 2：舊版剝掉來源欄位的副本', () => {
 
   it('版本 2 的資料不套用這條轉換', () => {
     const history = { '@shared': [stripped] }
-    expect(parseSnapshot({ app: SNAPSHOT_APP, schemaVersion: 2, exportedAt: 1, history }).history['@shared'][0].source).toBe('ani-gamer')
+    expect(parseSnapshot({ app: SNAPSHOT_APP, dataVersion: '2.0.0', schemaVersion: 2, exportedAt: 1, history }).history['@shared'][0].source).toBe('ani-gamer')
   })
 })
 

@@ -88,6 +88,10 @@ const gmStubs = (initial) => {
     window.__gmApply(key, value, false)
     window.__gmWrite(key, value).catch((error) => console.error(error))
   }
+  window.GM_deleteValue = (key) => {
+    values.delete(key)
+    window.__gmWrite(key, undefined).catch((error) => console.error(error))
+  }
   window.GM_addValueChangeListener = (key, callback) => {
     listeners.push({ key, callback })
     return String(listeners.length)
@@ -147,7 +151,8 @@ const newMachine = async (name) => {
   context.gmPages = new Set()
   await context.exposeFunction('__fakeGithub', fakeGithub)
   await context.exposeBinding('__gmWrite', async ({ page: source }, key, value) => {
-    context.gmValues.set(key, value)
+    if (value === undefined) context.gmValues.delete(key)
+    else context.gmValues.set(key, value)
     for (const other of context.gmPages) {
       if (other === source || other.isClosed()) continue
       await other.evaluate(([k, v]) => { window.__gmApply(k, v, true) }, [key, value]).catch(() => {})
@@ -199,8 +204,17 @@ const runMenu = async (tab, caption) => await tab.evaluate((c) => { window.__men
 const dialogOf = (tab) => tab.locator('dialog.agh-dialog[open]')
 const field = (dialog, label) => dialog.locator('.agh-field', { has: dialog.page().locator('.agh-field-label', { hasText: label }) }).locator('input')
 const expectMessage = async (dialog, text) => await dialog.locator('.agh-message', { hasText: text }).waitFor({ timeout: 10000 })
-const HISTORY_KEY = 'animeHistory.v2'
-const localHistory = async (tab) => JSON.parse(await tab.evaluate((key) => window.GM_getValue(key, '{}'), HISTORY_KEY))
+// 本機只存一份資料，格式和雲端檔案相同（含資料版本）
+const HISTORY_KEY = 'history'
+const localSnapshot = async (tab) => JSON.parse(await tab.evaluate((key) => window.GM_getValue(key, 'null'), HISTORY_KEY))
+const localHistory = async (tab) => (await localSnapshot(tab))?.history ?? {}
+// 模擬另一個分頁（例如已更新的腳本）寫入 GM storage：這台機器的所有分頁都會收到通知
+const externalWrite = async (context, key, value) => {
+  context.gmValues.set(key, value)
+  for (const tab of context.gmPages) {
+    if (!tab.isClosed()) await tab.evaluate(([k, v]) => { window.__gmApply(k, v, true) }, [key, value]).catch(() => {})
+  }
+}
 
 let stepNo = 0
 const step = async (name, fn) => {
@@ -237,9 +251,10 @@ try {
     assert.deepEqual(await menuCaptions(aHome), ['⚙ 開啟同步設定', '↻ 立即同步', '⏸ 暫停自動同步', '⧉ 複製同步設定', '⤓ 匯出 JSON'])
     await sleep(500)
     assert.equal(github.responses.length, 0)
-    // 舊欄位升級後寫進新欄位，舊欄位保持原樣
+    // 舊欄位升級後寫進新欄位（含資料版本），再刪掉舊欄位
     assert.deepEqual((await localHistory(aHome)).tester.map((a) => a.title), ['葬送的芙莉蓮', '藥師少女的獨語'])
-    assert.equal(A.gmValues.get('animeHistory'), legacyHistory(now))
+    assert.equal((await localSnapshot(aHome)).dataVersion, '2.0.0')
+    await waitFor(() => !A.gmValues.has('animeHistory'), '舊欄位已刪除')
   })
 
   await step('A 齒輪開 dialog：左側導覽 4 頁；Token 錯誤時不會儲存也不會寫入雲端', async () => {
@@ -605,7 +620,7 @@ try {
     await home.close()
   })
 
-  await step('資料版本 2：只有舊欄位（含被舊版剝掉來源的 anime1 副本）的電腦更新後只顯示一筆，並寫入新欄位', async () => {
+  await step('資料版本：只有舊欄位（含被舊版剝掉來源的 anime1 副本）的電腦更新後只顯示一筆，只剩一份含版本號的資料', async () => {
     const D = await newMachine('D')
     const reported = { id: '29681', title: '暴怒千金發誓復仇。 ～憑藉魔導書之力打垮祖國～', timestamp: now - 1000, episode: '5b', episodePicUrl: '', animePicUrl: '', videoWatchTime: 1.203466, videoTotalTime: 1425.024 }
     const legacy = JSON.stringify({ '@shared': [{ source: 'anime1', ...reported, seriesId: '1959' }, { source: 'ani-gamer', ...reported }] })
@@ -618,14 +633,16 @@ try {
     assert.equal(shared.length, 1)
     assert.equal(shared[0].source, 'anime1')
     assert.equal(shared[0].seriesId, '1959')
-    assert.equal(await tab.evaluate(() => window.GM_getValue('animeHistory', null)), legacy, '舊欄位不被改寫')
+    assert.equal((await localSnapshot(tab)).dataVersion, '2.0.0')
+    await waitFor(() => !D.gmValues.has('animeHistory'), '舊欄位已刪除，只剩一份最新版的資料')
+    assert.deepEqual([...D.gmValues.keys()].filter((key) => key.startsWith('animeHistory') || key === HISTORY_KEY), [HISTORY_KEY])
     await tab.close()
     await D.close()
   })
 
-  await step('資料版本 2：雲端資料由更新版本建立時顯示「無法同步」與「請更新腳本」連結，不合併也不寫回', async () => {
+  await step('資料版本：雲端資料由更新版本建立時顯示「無法同步」與「請更新腳本」連結，不合併也不寫回', async () => {
     const original = github.files.get(REMOTE_KEY)
-    const newer = { ...JSON.parse(original.text), schemaVersion: 3 }
+    const newer = { ...JSON.parse(original.text), dataVersion: '2.1.0', schemaVersion: 3 }
     newer.history.tester = [...(newer.history.tester ?? []), { source: 'ani-gamer', id: '999', title: '未來版本的紀錄', timestamp: now, episode: '1', episodePicUrl: '', animePicUrl: '', videoWatchTime: 0, videoTotalTime: 1 }]
     github.files.set(REMOTE_KEY, { sha: original.sha, text: JSON.stringify(newer) })
     const commits = github.commits.length
@@ -648,6 +665,48 @@ try {
     await tab.keyboard.press('Escape')
     await tab.close()
     github.files.set(REMOTE_KEY, original)
+  })
+
+  await step('資料版本：本機資料由較新版本建立時拒絕使用：首頁提示更新、不顯示清單、不寫入本機、不發雲端請求', async () => {
+    const E = await newMachine('E')
+    const newer = JSON.stringify({ app: 'ani-gamer-history', dataVersion: '2.1.0', schemaVersion: 3, exportedAt: 1, history: { tester: [{ source: 'ani-gamer', id: '1', title: '未來版本的紀錄', timestamp: now, episode: '1', episodePicUrl: '', animePicUrl: '', videoWatchTime: 0, videoTotalTime: 1, note: '新欄位' }] } })
+    E.gmValues.set(HISTORY_KEY, newer)
+    E.gmValues.set('syncSettings', { adapterId: 'github-repo', autoSync: true, adapters: { 'github-repo': { token: 'good-token', repository: 'me/data' } } })
+    const responses = github.responses.length
+    const tab = await openPage(E, '/')
+    await tab.locator('#watched-anime .agh-empty', { hasText: '資料版本 2.1.0' }).waitFor()
+    assert.equal(await tab.locator('#watched-anime .agh-empty a').textContent(), '請更新腳本')
+    assert.equal(await tab.locator('#watched-anime .continue-watch-card').count(), 0)
+    assert.equal(await tab.locator('.agh-sync-indicator').textContent(), '無法使用請更新腳本')
+    await tab.screenshot({ path: `${OUT}08-local-locked.png` })
+    await sleep(2500)
+    assert.equal(github.responses.length, responses, '不應發出任何雲端請求')
+    assert.equal(E.gmValues.get(HISTORY_KEY), newer, '不應改寫本機資料')
+    await tab.locator('.agh-gear').click()
+    await dialogOf(tab).locator('.agh-message', { hasText: '請先更新腳本' }).waitFor()
+    await tab.close()
+    await E.close()
+  })
+
+  await step('資料版本：已開著的分頁收到較新版本寫入的資料後停止寫入，之後看動畫也不會蓋掉', async () => {
+    const F = await newMachine('F')
+    const video = await openPage(F, `/animeVideo.php?sn=404&title=${encodeURIComponent('孤獨搖滾！')}`, () => {
+      const element = document.getElementById('ani_video_html5_api')
+      Object.defineProperty(element, 'paused', { get: () => window.__paused === true, configurable: true })
+    })
+    await video.click('#adult')
+    await waitFor(async () => (await localHistory(video)).tester?.some((item) => item.title === '孤獨搖滾！'), '開始看動畫後寫入本機', 8000)
+    const newer = JSON.stringify({ app: 'ani-gamer-history', dataVersion: '3.0.0', schemaVersion: 3, exportedAt: 1, history: {} })
+    await externalWrite(F, HISTORY_KEY, newer)
+    // 影片分頁每秒都會更新進度；鎖定後不應再寫入
+    await sleep(3000)
+    assert.equal(F.gmValues.get(HISTORY_KEY), newer, '鎖定後不應蓋掉較新版本的資料')
+    const home = await openPage(F, '/')
+    await home.locator('#watched-anime .agh-empty', { hasText: '資料版本 3.0.0' }).waitFor()
+    await video.evaluate(() => { window.__paused = true })
+    await video.close()
+    await home.close()
+    await F.close()
   })
 
   await step('B 中斷同步：清除 Token、首頁狀態消失；手機寬度版面截圖', async () => {
@@ -679,7 +738,7 @@ try {
     const state = await tab.evaluate(() => ({
       sync: window.GM_getValue('syncStatus', null),
       settings: window.GM_getValue('syncSettings', null),
-      local: Object.entries(JSON.parse(window.GM_getValue('animeHistory.v2', '{}'))).map(([k, v]) => [k, v.map((i) => `${i.source}:${i.title}`)])
+      local: Object.entries(JSON.parse(window.GM_getValue('history', '{"history":{}}')).history).map(([k, v]) => [k, v.map((i) => `${i.source}:${i.title}`)])
     })).catch(() => null)
     console.error(name, JSON.stringify(state))
   }

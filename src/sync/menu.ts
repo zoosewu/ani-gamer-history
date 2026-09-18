@@ -3,7 +3,7 @@ import { store } from '@/pages/redux/store'
 import { startAppListening } from '@/pages/redux/listenerMiddleware'
 import { autoSyncSet } from '@/pages/redux/syncSlice'
 import { openSettings } from '@/pages/settings/openSettings'
-import { copySavedSettings, errorMessage, exportJson, requestCloudSync } from './syncService'
+import { copySavedSettings, errorMessage, exportJson, lockedMessage, requestCloudSync } from './syncService'
 
 const notify = (text: string): void => {
   GM_notification({ title: 'Ani Gamer History', text })
@@ -13,6 +13,11 @@ const notify = (text: string): void => {
 const menuItems = (autoSync: boolean): Array<[string, () => void]> => [
   ['⚙ 開啟同步設定', () => openSettings()],
   ['↻ 立即同步', () => {
+    const locked = lockedMessage()
+    if (locked !== null) {
+      notify(`無法同步：${locked}`)
+      return
+    }
     void requestCloudSync('manual').then(() => {
       const { ok, message } = store.getState().sync.status
       notify(`${ok === true ? '同步完成' : '同步失敗'}：${message}`)

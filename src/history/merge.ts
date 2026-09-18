@@ -1,6 +1,7 @@
-import { Anime, AnimeHistory, AnimeSource, HistorySnapshot, SNAPSHOT_APP, SNAPSHOT_SCHEMA_VERSION } from './types'
+import { Anime, AnimeHistory, AnimeSource, DATA_VERSION, HistorySnapshot, SNAPSHOT_APP } from './types'
 import { animeKey, DEFAULT_SOURCE, sourceOf } from './source'
 import { upgradeHistory } from './migrations'
+import { DataVersion, formatDataVersion, fromSchemaVersion, isNewerThanSupported, legacySchemaVersion, parseDataVersion } from './dataVersion'
 
 // 合併規則（交換律、結合律、冪等）：
 // - 觀看進度：取 timestamp 較大者
@@ -114,7 +115,8 @@ export const isSameHistory = (a: AnimeHistory, b: AnimeHistory): boolean =>
 
 export const createSnapshot = (history: AnimeHistory, exportedAt = Date.now()): HistorySnapshot => ({
   app: SNAPSHOT_APP,
-  schemaVersion: SNAPSHOT_SCHEMA_VERSION,
+  dataVersion: DATA_VERSION,
+  schemaVersion: legacySchemaVersion(),
   exportedAt,
   history: normalizeHistory(history)
 })
@@ -140,40 +142,57 @@ const readHistory = (value: unknown): AnimeHistory => {
 
 // 資料由較新版本的腳本建立：不能合併，否則看不懂的部分會被丟掉或改錯後寫回去
 export class SchemaTooNewError extends Error {
-  readonly version: number
+  readonly version: string
 
-  constructor (version: number) {
-    super(`這份資料由較新版本的腳本建立（資料格式版本 ${version}），請先更新腳本`)
+  constructor (version: string) {
+    super(`這份資料由較新版本的腳本建立（資料版本 ${version}），請先更新腳本`)
     this.name = 'SchemaTooNewError'
     this.version = version
   }
 }
 
-// 版本比目前高就拒絕，比目前低就升級轉換；規則見 docs/schema-version.md
-const checkSchemaVersion = (version: unknown): number => {
-  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1) {
-    throw new Error(`不支援的資料版本：${String(version)}`)
+// 沒有包裝的 AnimeHistory 是雲端同步之前的格式
+const LEGACY_RAW_VERSION: DataVersion = { major: 1, minor: 0, patch: 0 }
+
+// 讀出 snapshot 的資料版本：有 dataVersion 用它，0.8.0 以前的資料只有整數 schemaVersion
+const readDataVersion = (snapshot: Record<string, unknown>): DataVersion => {
+  if (snapshot.dataVersion !== undefined) {
+    const version = parseDataVersion(snapshot.dataVersion)
+    if (version === null) throw new Error(`不支援的資料版本：${String(snapshot.dataVersion)}`)
+    return version
   }
-  if (version > SNAPSHOT_SCHEMA_VERSION) throw new SchemaTooNewError(version)
-  return version
+  const { schemaVersion } = snapshot
+  if (typeof schemaVersion !== 'number' || !Number.isInteger(schemaVersion) || schemaVersion < 1) {
+    throw new Error(`不支援的資料版本：${String(schemaVersion)}`)
+  }
+  return fromSchemaVersion(schemaVersion)
+}
+
+// MAJOR.MINOR 比目前新就拒絕，比目前舊就升級轉換；規則見 docs/schema-version.md
+const checkDataVersion = (version: DataVersion): void => {
+  if (isNewerThanSupported(version)) throw new SchemaTooNewError(formatDataVersion(version))
 }
 
 // 雲端檔案與 JSON 匯入：檢查版本與結構，有問題就丟錯
-export const parseHistoryAt = (version: unknown, value: unknown): AnimeHistory => {
-  const from = checkSchemaVersion(version)
-  return normalizeHistory(upgradeHistory(from, readHistory(value)) as AnimeHistory)
+export const parseHistoryAt = (version: DataVersion, value: unknown): AnimeHistory => {
+  checkDataVersion(version)
+  return normalizeHistory(upgradeHistory(version.major, readHistory(value)) as AnimeHistory)
 }
 
 // 本機儲存：只檢查版本，內容沿用正規化時的寬鬆處理，避免一筆壞資料讓整份紀錄讀不到
-export const loadHistoryAt = (version: number, value: unknown): AnimeHistory => {
-  const from = checkSchemaVersion(version)
-  return normalizeHistory(upgradeHistory(from, value as AnimeHistory) as AnimeHistory)
+export const loadHistoryAt = (version: DataVersion, value: unknown): AnimeHistory => {
+  checkDataVersion(version)
+  return normalizeHistory(upgradeHistory(version.major, value as AnimeHistory) as AnimeHistory)
 }
 
-// 接受 HistorySnapshot，也接受雲端同步之前直接存放的 AnimeHistory（視為版本 1）
-export const parseSnapshot = (value: unknown): HistorySnapshot => {
-  if (isRecord(value) && value.app === SNAPSHOT_APP) {
-    return createSnapshot(parseHistoryAt(value.schemaVersion, value.history), finite(value.exportedAt))
-  }
-  return createSnapshot(parseHistoryAt(1, value), 0)
-}
+const isSnapshot = (value: unknown): value is Record<string, unknown> => isRecord(value) && value.app === SNAPSHOT_APP
+
+// 雲端檔案與 JSON 匯入。接受 HistorySnapshot，也接受雲端同步之前直接存放的 AnimeHistory
+export const parseSnapshot = (value: unknown): HistorySnapshot => isSnapshot(value)
+  ? createSnapshot(parseHistoryAt(readDataVersion(value), value.history), finite(value.exportedAt))
+  : createSnapshot(parseHistoryAt(LEGACY_RAW_VERSION, value), 0)
+
+// 本機儲存的 snapshot：版本檢查與雲端相同，內容寬鬆處理
+export const loadSnapshotHistory = (value: unknown): AnimeHistory => isSnapshot(value)
+  ? loadHistoryAt(readDataVersion(value), value.history)
+  : loadHistoryAt(LEGACY_RAW_VERSION, value)
