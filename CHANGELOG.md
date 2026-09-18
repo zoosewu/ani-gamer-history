@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/zoosewu/ani-gamer-history/compare/0.7.1...0.8.0) (2026-09-18)
+
+
+### 新增功能
+
+* **sync:** refuse newer data and upgrade older data by schema version ([1fcf2c7](https://github.com/zoosewu/ani-gamer-history/commit/1fcf2c798aa87108c02ad4cf9aef1cef29fed048))
+
+
+### 問題修正
+
+* **sync:** merge anime1 records stripped by older versions ([1fcf2c7](https://github.com/zoosewu/ani-gamer-history/commit/1fcf2c798aa87108c02ad4cf9aef1cef29fed048))
+
 ## [0.7.1](https://github.com/zoosewu/ani-gamer-history/compare/0.7.0...0.7.1) (2026-09-17)
 
 
