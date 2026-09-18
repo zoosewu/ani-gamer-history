@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/zoosewu/ani-gamer-history/compare/0.9.0...0.10.0) (2026-09-18)
+
+
+### 新增功能
+
+* **sync:** keep one versioned copy of the history and lock out older scripts ([78f1e14](https://github.com/zoosewu/ani-gamer-history/commit/78f1e14f1d135afc9ed817ac08ecd3ef5046c0f4))
+
 ## [0.9.0](https://github.com/zoosewu/ani-gamer-history/compare/0.8.0...0.9.0) (2026-09-18)
 
 
