@@ -34,3 +34,18 @@ jobs:
 
       - name: Build userscript
         run: npm run build
+
+      # 端對端測試：兩台「電腦」+ 假的 GitHub，在瀏覽器裡跑實際 build 出來的 userscript
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end test
+        run: npm run test:e2e
+
+      - name: Upload end-to-end screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-screenshots
+          path: e2e/out/
+          if-no-files-found: ignore
