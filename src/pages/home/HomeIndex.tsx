@@ -126,10 +126,10 @@ const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
         <div className='watch-more-block'>
           <h1 className='theme-title'>本機歷史紀錄</h1>
           <div className='agh-title-tools'>
-            <SyncIndicator />
             <button type='button' className='agh-gear' title='同步設定' aria-label='同步設定' onClick={() => openSettings()}>
               <i className='material-icons-round'>settings</i>
             </button>
+            <SyncIndicator />
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimeSource } from '@/history/types'
 import { listExtraSources, sourceLabel } from '@/history/source'
-import { isSourceVisible } from '@/preferences/preferences'
+import { isMarkerVisible, isSourceVisible } from '@/preferences/preferences'
 import { AdapterSettings, FieldSpec, importAdapterSettings, TestResult } from '@/sync/adapter'
 import { readClipboard } from '@/sync/clipboard'
 import { cloudAdapters, findCloudAdapter } from '@/sync/cloudAdapters'
@@ -10,23 +10,22 @@ import { copyAdapterSettings, errorMessage, exportJson, importJson, requestCloud
 import { store } from '../redux/store'
 import { useAppDispatch, useAppSelector } from '../redux/hooks'
 import { adapterSettingsSaved, autoSyncSet, syncDisconnected } from '../redux/syncSlice'
-import { sourceVisibilitySet } from '../redux/preferencesSlice'
+import { markerVisibilitySet, sourceVisibilitySet } from '../redux/preferencesSlice'
 import { describeSyncStatus } from './format'
 import { UpdateScriptLink } from './UpdateScriptLink'
 import './SettingsDialog.css'
 
-export type SettingsPage = 'status' | 'cloud' | 'display' | 'backup'
+export type SettingsPage = 'status' | 'cloud' | 'features' | 'backup'
 
 interface PageItem {
   id: SettingsPage
   label: string
 }
 
-// 「顯示」頁只在已經有其他網站的紀錄時出現，未來支援的網站也一樣
-const buildPages = (hasExtraSources: boolean): PageItem[] => [
+const pages: PageItem[] = [
   { id: 'status', label: '同步狀態' },
   { id: 'cloud', label: '雲端平台' },
-  ...(hasExtraSources ? [{ id: 'display' as const, label: '顯示' }] : []),
+  { id: 'features', label: '功能' },
   { id: 'backup', label: '備份' }
 ]
 
@@ -233,34 +232,65 @@ const CloudPage = (): JSX.Element => {
   )
 }
 
-const DisplayPage = ({ sources }: { sources: AnimeSource[] }): JSX.Element => {
+interface ToggleRowProps {
+  label: string
+  ariaLabel: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}
+
+const ToggleRow = ({ label, ariaLabel, checked, onChange }: ToggleRowProps): JSX.Element => (
+  <>
+    <dt>{label}</dt>
+    <dd>
+      <label className='agh-toggle'>
+        <input type='checkbox' checked={checked} aria-label={ariaLabel} onChange={(event) => { onChange(event.target.checked) }} />
+        <span className='agh-toggle-track' aria-hidden='true' />
+        <span>{checked ? '顯示' : '已隱藏'}</span>
+      </label>
+    </dd>
+  </>
+)
+
+// 其他網站的開關只在已經有該網站的紀錄時出現，未來支援的網站也一樣
+const FeaturesPage = ({ sources }: { sources: AnimeSource[] }): JSX.Element => {
   const dispatch = useAppDispatch()
   const preferences = useAppSelector((state) => state.preferences)
+  const markerSources: AnimeSource[] = ['ani-gamer', ...sources]
   return (
     <div className='agh-page'>
-      <p className='agh-hint'>選擇要在動畫瘋首頁的「本機歷史紀錄」顯示哪些網站的紀錄。隱藏只影響清單顯示，仍會繼續記錄與同步。</p>
-      <dl className='agh-summary'>
-        {sources.map((source) => {
-          const visible = isSourceVisible(preferences, source)
-          return (
-            <Fragment key={source}>
-              <dt>{sourceLabel(source)}</dt>
-              <dd>
-                <label className='agh-toggle'>
-                  <input
-                    type='checkbox'
-                    checked={visible}
-                    aria-label={`在首頁顯示 ${sourceLabel(source)} 的紀錄`}
-                    onChange={(event) => { dispatch(sourceVisibilitySet({ source, visible: event.target.checked })) }}
-                  />
-                  <span className='agh-toggle-track' aria-hidden='true' />
-                  <span>{visible ? '顯示' : '已隱藏'}</span>
-                </label>
-              </dd>
-            </Fragment>
-          )
-        })}
-      </dl>
+      <div className='agh-section'>
+        <h4 className='agh-section-title'>上次觀看標記</h4>
+        <p className='agh-hint'>在動畫頁面標出本機紀錄最後看到的那一集，例如動畫瘋分集清單上的書籤。關閉後只是不顯示標記，仍會繼續記錄與同步。</p>
+        <dl className='agh-summary'>
+          {markerSources.map((source) => (
+            <ToggleRow
+              key={source}
+              label={sourceLabel(source)}
+              ariaLabel={`在 ${sourceLabel(source)} 顯示上次觀看標記`}
+              checked={isMarkerVisible(preferences, source)}
+              onChange={(visible) => { dispatch(markerVisibilitySet({ source, visible })) }}
+            />
+          ))}
+        </dl>
+      </div>
+      {sources.length > 0 && (
+        <div className='agh-section'>
+          <h4 className='agh-section-title'>首頁清單</h4>
+          <p className='agh-hint'>選擇要在動畫瘋首頁的「本機歷史紀錄」顯示哪些網站的紀錄。隱藏只影響清單顯示，仍會繼續記錄與同步。</p>
+          <dl className='agh-summary'>
+            {sources.map((source) => (
+              <ToggleRow
+                key={source}
+                label={sourceLabel(source)}
+                ariaLabel={`在首頁顯示 ${sourceLabel(source)} 的紀錄`}
+                checked={isSourceVisible(preferences, source)}
+                onChange={(visible) => { dispatch(sourceVisibilitySet({ source, visible })) }}
+              />
+            ))}
+          </dl>
+        </div>
+      )}
     </div>
   )
 }
@@ -302,8 +332,6 @@ export const SettingsDialog = ({ initialPage, onClosed }: SettingsDialogProps): 
   const [page, setPage] = useState(initialPage)
   const animeHistory = useAppSelector((state) => state.animeHistory)
   const extraSources = useMemo(() => listExtraSources(animeHistory), [animeHistory])
-  const pages = buildPages(extraSources.length > 0)
-  // 目前頁面消失時（例如刪光了其他網站的紀錄）回到第一頁
   const current = pages.find((item) => item.id === page) ?? pages[0]
 
   useEffect(() => {
@@ -346,7 +374,7 @@ export const SettingsDialog = ({ initialPage, onClosed }: SettingsDialogProps): 
           </header>
           {current.id === 'status' && <StatusPage onNavigate={setPage} />}
           {current.id === 'cloud' && <CloudPage />}
-          {current.id === 'display' && <DisplayPage sources={extraSources} />}
+          {current.id === 'features' && <FeaturesPage sources={extraSources} />}
           {current.id === 'backup' && <BackupPage />}
         </section>
       </div>

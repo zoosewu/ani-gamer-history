@@ -5,6 +5,7 @@ import { Anime } from '@/history/types'
 import { isRemoved } from '@/history/merge'
 import { sourceOf } from '@/history/source'
 import { describeProgress } from '@/history/time'
+import { isMarkerVisible } from '@/preferences/preferences'
 import { store } from '../redux/store'
 import { recordWatch } from '../redux/animeHistorySlice'
 import '@/pages/marker.css'
@@ -26,10 +27,10 @@ const currentTitle = (): string => document.querySelector('img.data-img')?.getAt
 
 const currentUserId = (): string => document.getElementsByClassName('user-id')[0]?.textContent?.trim() ?? ''
 
-// 這部動畫在本機的最後觀看紀錄
+// 這部動畫在本機的最後觀看紀錄；在設定關閉標記時視為沒有紀錄，書籤就會移除
 const lastWatched = (): Anime | undefined => {
   const title = currentTitle()
-  if (title === '') return undefined
+  if (title === '' || !isMarkerVisible(store.getState().preferences, 'ani-gamer')) return undefined
   return store.getState().animeHistory[currentUserId()]
     ?.find((anime) => sourceOf(anime) === 'ani-gamer' && anime.title === title && !isRemoved(anime))
 }
