@@ -40,6 +40,8 @@ const randomHistory = (random: () => number): AnimeHistory => {
       videoWatchTime: pick([0, 50]),
       isFavorite: pick([undefined, true, false]),
       favoriteTime: pick([undefined, 150, 250]),
+      note: pick([undefined, '', '心得一', '心得二']),
+      noteTime: pick([undefined, 150, 250]),
       removeTime: pick([undefined, 150, 250, 350])
     }))
   }
@@ -62,6 +64,13 @@ describe('isRemoved', () => {
 })
 
 describe('normalizeAnime', () => {
+  it('沒有編輯時間的備註視為舊資料保留，空備註不留下欄位', () => {
+    expect(normalizeAnime(anime({ note: '心得' })).note).toBe('心得')
+    expect(normalizeAnime(anime({ note: '' }))).not.toHaveProperty('note')
+    // 有編輯時間時連空字串都要保留，才能同步刪除
+    expect(normalizeAnime(anime({ note: '', noteTime: 100 }))).toMatchObject({ note: '', noteTime: 100 })
+  })
+
   it('去掉舊版的 isFavorite: false，並把非有限數字轉成 0', () => {
     expect(normalizeAnime(anime({ isFavorite: false, videoTotalTime: NaN }))).toEqual(anime({ videoTotalTime: 0 }))
   })
@@ -138,6 +147,25 @@ describe('mergeHistory', () => {
     expect(mergeHistory({ tester: [older] }, { tester: [newer] }).tester[0].seriesId).toBe('1898')
   })
 
+  it('備註取最後編輯時間較新的那一份', () => {
+    const older = anime({ note: '舊心得', noteTime: 100 })
+    const newer = anime({ note: '新心得', noteTime: 200, timestamp: 50 })
+    const merged = mergeHistory({ alice: [older] }, { alice: [newer] }).alice[0]
+    expect(merged).toMatchObject({ note: '新心得', noteTime: 200 })
+    // 進度仍取時間較新的那一筆，和備註各自獨立
+    expect(merged.timestamp).toBe(1000)
+  })
+
+  it('清空備註會同步刪除，另一邊較舊的內容不會復活', () => {
+    const written = anime({ note: '心得', noteTime: 100 })
+    const cleared = anime({ note: '', noteTime: 200 })
+    expect(mergeHistory({ alice: [written] }, { alice: [cleared] }).alice[0]).toMatchObject({ note: '', noteTime: 200 })
+  })
+
+  it('只有一邊有備註時保留它', () => {
+    expect(mergeHistory({ alice: [anime()] }, { alice: [anime({ note: '心得', noteTime: 100 })] }).alice[0].note).toBe('心得')
+  })
+
   it('捨棄沒有標題的紀錄', () => {
     expect(mergeHistory({ alice: [anime({ title: '' })] })).toEqual({ alice: [] })
   })
@@ -182,7 +210,8 @@ describe('parseSnapshot', () => {
   it('寫出資料版本，以及給 0.9.0 以前的腳本看的整數版本', () => {
     const snapshot = createSnapshot({}, 1)
     expect(snapshot.dataVersion).toBe(DATA_VERSION)
-    expect(snapshot.schemaVersion).toBe(2)
+    // 資料版本已經超過 2.0.x，0.9.0 以前的腳本必須拒絕
+    expect(snapshot.schemaVersion).toBe(3)
   })
 
   it('資料的 MAJOR 或 MINOR 比目前新時拒絕合併，並提示更新腳本', () => {

@@ -96,3 +96,55 @@
 .ani-gamer-history.continue-watch-area .continue-watch-list .continue-watch-card:hover .content-block .content .anime-name {
   width: calc(100% - 16px);
 }
+
+/* 備註按鈕：沒有備註時和最愛一樣，滑鼠移到卡片上才出現；有備註時常駐並用琥珀色標示 */
+.ani-gamer-history .agh-note-btn {
+  position: absolute;
+  top: -4px;
+  /* 最愛在 right: 32px、寬 40px，所以這裡要 72px 才不會重疊 */
+  right: 72px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--text-on-primary, #fff);
+  opacity: 0;
+  cursor: pointer;
+  transition: 200ms;
+}
+
+.continue-watch-area .continue-watch-list .continue-watch-card:hover .img-block .agh-note-btn {
+  opacity: 1;
+}
+
+.ani-gamer-history .agh-note-btn.has-note {
+  color: #f0a01e; /* 與影片頁書籤同一個琥珀色 */
+  opacity: 1;
+}
+
+/* 搜尋欄：放在標題與齒輪之間，手機寬度時縮短 */
+.ani-gamer-history .agh-search {
+  box-sizing: border-box;
+  width: min(220px, 40vw);
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 16px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ani-gamer-history .agh-search::placeholder {
+  color: inherit;
+  opacity: 0.6;
+}
+
+.ani-gamer-history .agh-search:focus-visible {
+  border-color: #00a1d6;
+  outline: none;
+}

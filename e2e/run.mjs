@@ -14,6 +14,9 @@ const stripScripts = (html) => html.replace(/<script\b[\s\S]*?<\/script>/gi, '')
 const anime1Post = stripScripts(await readFile(new URL('./fixtures/anime1/post.html', import.meta.url), 'utf8'))
 const anime1Category = stripScripts(await readFile(new URL('./fixtures/anime1/category.html', import.meta.url), 'utf8'))
 const userscript = await readFile(DIST, 'utf8')
+// 目前的資料版本，直接從 build 出來的腳本取出，調版號時測試不用跟著改
+const dataVersion = /"(\d+\.\d+\.\d+)"/.exec(/DATA_VERSION\s*=\s*"\d+\.\d+\.\d+"/.exec(userscript)?.[0] ?? '')?.[1]
+assert.match(dataVersion ?? '', /^\d+\.\d+\.\d+$/, '找不到 DATA_VERSION')
 const requires = [...userscript.matchAll(/^\/\/ @require\s+(\S+)$/gm)].map((match) => match[1])
 const libs = await Promise.all(requires.map(async (url) => {
   const response = await fetch(url)
@@ -253,7 +256,7 @@ try {
     assert.equal(github.responses.length, 0)
     // 舊欄位升級後寫進新欄位（含資料版本），再刪掉舊欄位
     assert.deepEqual((await localHistory(aHome)).tester.map((a) => a.title), ['葬送的芙莉蓮', '藥師少女的獨語'])
-    assert.equal((await localSnapshot(aHome)).dataVersion, '2.0.0')
+    assert.equal((await localSnapshot(aHome)).dataVersion, dataVersion)
     await waitFor(() => !A.gmValues.has('animeHistory'), '舊欄位已刪除')
   })
 
@@ -610,13 +613,118 @@ try {
     for (const tab of [video, series, home, post, reloaded]) await tab.close()
   })
 
-  await step('首頁同步時間在齒輪右邊', async () => {
+  await step('首頁標題列順序：標題 → 搜尋欄 → 齒輪 → 同步時間', async () => {
     const home = await openPage(A, '/')
     const indicator = home.locator('.agh-sync-indicator')
     await indicator.waitFor()
-    const gearBox = await home.locator('.agh-gear').boundingBox()
-    const indicatorBox = await indicator.boundingBox()
-    assert.ok(indicatorBox.x >= gearBox.x + gearBox.width, `同步時間 x=${indicatorBox.x} 應在齒輪（右緣 ${gearBox.x + gearBox.width}）右邊`)
+    const boxes = {}
+    for (const [name, selector] of [['title', '.theme-title'], ['search', '.agh-search'], ['gear', '.agh-gear'], ['indicator', '.agh-sync-indicator']]) {
+      boxes[name] = await home.locator(`#watched-anime ${selector}`).boundingBox()
+    }
+    const order = Object.entries(boxes).sort(([, a], [, b]) => a.x - b.x).map(([name]) => name)
+    assert.deepEqual(order, ['title', 'search', 'gear', 'indicator'], `實際位置：${JSON.stringify(boxes)}`)
+    await home.close()
+  })
+
+  await step('備註：卡片上編輯後出現圖示、寫入本機並推送到雲端', async () => {
+    const home = await openPage(A, '/')
+    await waitFor(async () => (await cards(home)).includes('膽大黨'), '首頁顯示膽大黨')
+    const target = card(home, '膽大黨')
+    assert.equal(await target.locator('.agh-note-btn.has-note').count(), 0, '一開始沒有備註')
+    const commits = github.commits.length
+    await target.locator('.agh-note-btn').dispatchEvent('click')
+    const dialog = home.locator('dialog.agh-note-dialog[open]')
+    await dialog.waitFor()
+    assert.match(await dialog.locator('.agh-title').textContent(), /膽大黨/)
+    await dialog.locator('.agh-note-input').fill('第 3 集的作畫很誇張\n之後要重看')
+    await home.screenshot({ path: `${OUT}09-note-dialog.png` })
+    await dialog.getByRole('button', { name: '儲存' }).click()
+    await dialog.waitFor({ state: 'detached' })
+    await target.locator('.agh-note-btn.has-note').waitFor()
+    assert.equal(await target.locator('.agh-note-btn').getAttribute('title'), '第 3 集的作畫很誇張\n之後要重看')
+    const record = (await localHistory(home)).tester.find((item) => item.title === '膽大黨')
+    assert.equal(record.note, '第 3 集的作畫很誇張\n之後要重看')
+    assert.ok(record.noteTime > 0)
+    await waitFor(() => github.commits.length > commits, '備註推送到雲端', 8000)
+    assert.ok(remoteList().find((item) => item.title === '膽大黨').note.startsWith('第 3 集'))
+    await home.close()
+  })
+
+  await step('備註：另一台電腦同步後看得到；再看同一部動畫也不會洗掉', async () => {
+    await runMenu(bHome, '↻ 立即同步')
+    await waitFor(async () => (await localHistory(bHome)).tester?.find((item) => item.title === '膽大黨')?.note !== undefined, 'B 同步到備註', 10000)
+    await card(bHome, '膽大黨').locator('.agh-note-btn.has-note').waitFor()
+
+    // 再看一次同一部動畫（recordWatch）之後，備註仍在
+    const video = await openPage(A, `/animeVideo.php?sn=303&title=${encodeURIComponent('膽大黨')}`, () => {
+      const element = document.getElementById('ani_video_html5_api')
+      Object.defineProperty(element, 'paused', { get: () => window.__paused === true, configurable: true })
+    })
+    await video.click('#adult')
+    await sleep(1500)
+    assert.ok((await localHistory(video)).tester.find((item) => item.title === '膽大黨').note.startsWith('第 3 集'), '看動畫不應洗掉備註')
+    await video.evaluate(() => { window.__paused = true })
+    await video.close()
+  })
+
+  await step('備註：兩台各自編輯時較新的勝出，清空會同步刪除', async () => {
+    const aHome2 = await openPage(A, '/')
+    await waitFor(async () => (await cards(aHome2)).includes('膽大黨'), 'A 顯示膽大黨')
+    const editNote = async (tab, text) => {
+      await card(tab, '膽大黨').locator('.agh-note-btn').dispatchEvent('click')
+      const dialog = tab.locator('dialog.agh-note-dialog[open]')
+      await dialog.waitFor()
+      await dialog.locator('.agh-note-input').fill(text)
+      await dialog.getByRole('button', { name: '儲存' }).click()
+      await dialog.waitFor({ state: 'detached' })
+    }
+    await editNote(aHome2, 'A 寫的心得')
+    await sleep(1100)
+    await editNote(bHome, 'B 後來寫的心得')
+    await waitFor(() => remoteList().find((item) => item.title === '膽大黨')?.note === 'B 後來寫的心得', 'B 的備註推送到雲端', 8000)
+    await runMenu(aHome2, '↻ 立即同步')
+    await waitFor(async () => (await localHistory(aHome2)).tester.find((item) => item.title === '膽大黨').note === 'B 後來寫的心得', 'A 同步後採用較新的備註', 10000)
+
+    // 清空備註：同步後另一台也會刪除
+    await editNote(aHome2, '')
+    await waitFor(async () => await card(aHome2, '膽大黨').locator('.agh-note-btn.has-note').count() === 0, 'A 的圖示消失')
+    await waitFor(() => remoteList().find((item) => item.title === '膽大黨')?.note === '', '清空推送到雲端', 8000)
+    await runMenu(bHome, '↻ 立即同步')
+    await waitFor(async () => await card(bHome, '膽大黨').locator('.agh-note-btn.has-note').count() === 0, 'B 同步後也刪除', 10000)
+    await aHome2.close()
+  })
+
+  await step('搜尋：可以用標題與備註過濾，清空後恢復，且不觸發雲端推送', async () => {
+    const home = await openPage(A, '/')
+    await waitFor(async () => (await cards(home)).length > 2, '首頁顯示多張卡片')
+    const titles = await cards(home)
+    const all = titles.length
+    // 用畫面上實際存在的第一張卡片，不綁死特定標題
+    const [title] = titles
+    await card(home, title).locator('.agh-note-btn').dispatchEvent('click')
+    const dialog = home.locator('dialog.agh-note-dialog[open]')
+    await dialog.waitFor()
+    await dialog.locator('.agh-note-input').fill('搜尋用的關鍵字 sakuga')
+    await dialog.getByRole('button', { name: '儲存' }).click()
+    await dialog.waitFor({ state: 'detached' })
+    await sleep(2500)
+    const commits = github.commits.length
+
+    const search = home.locator('#watched-anime .agh-search')
+    await search.fill(title)
+    await waitFor(async () => (await cards(home)).every((item) => item === title), '用標題過濾')
+    const matchedByTitle = (await cards(home)).length
+    assert.ok(matchedByTitle >= 1 && matchedByTitle < all, `用標題過濾後應變少（${matchedByTitle} / ${all}）`)
+    await search.fill('SAKUGA')
+    await waitFor(async () => (await cards(home)).length === 1, '用備註過濾（忽略大小寫）')
+    assert.deepEqual(await cards(home), [title])
+    await search.fill('不存在的關鍵字')
+    await home.locator('#watched-anime .agh-empty', { hasText: '找不到符合的紀錄' }).waitFor()
+    assert.equal(await home.locator('#watched-anime .continue-watch-card').count(), 0)
+    await home.screenshot({ path: `${OUT}10-search-empty.png` })
+    await search.fill('')
+    await waitFor(async () => (await cards(home)).length === all, '清空搜尋恢復全部')
+    assert.equal(github.commits.length, commits, '搜尋只影響畫面，不應觸發推送')
     await home.close()
   })
 
@@ -633,7 +741,7 @@ try {
     assert.equal(shared.length, 1)
     assert.equal(shared[0].source, 'anime1')
     assert.equal(shared[0].seriesId, '1959')
-    assert.equal((await localSnapshot(tab)).dataVersion, '2.0.0')
+    assert.equal((await localSnapshot(tab)).dataVersion, dataVersion)
     await waitFor(() => !D.gmValues.has('animeHistory'), '舊欄位已刪除，只剩一份最新版的資料')
     assert.deepEqual([...D.gmValues.keys()].filter((key) => key.startsWith('animeHistory') || key === HISTORY_KEY), [HISTORY_KEY])
     await tab.close()
@@ -642,7 +750,7 @@ try {
 
   await step('資料版本：雲端資料由更新版本建立時顯示「無法同步」與「請更新腳本」連結，不合併也不寫回', async () => {
     const original = github.files.get(REMOTE_KEY)
-    const newer = { ...JSON.parse(original.text), dataVersion: '2.1.0', schemaVersion: 3 }
+    const newer = { ...JSON.parse(original.text), dataVersion: '2.2.0', schemaVersion: 3 }
     newer.history.tester = [...(newer.history.tester ?? []), { source: 'ani-gamer', id: '999', title: '未來版本的紀錄', timestamp: now, episode: '1', episodePicUrl: '', animePicUrl: '', videoWatchTime: 0, videoTotalTime: 1 }]
     github.files.set(REMOTE_KEY, { sha: original.sha, text: JSON.stringify(newer) })
     const commits = github.commits.length
@@ -669,12 +777,12 @@ try {
 
   await step('資料版本：本機資料由較新版本建立時拒絕使用：首頁提示更新、不顯示清單、不寫入本機、不發雲端請求', async () => {
     const E = await newMachine('E')
-    const newer = JSON.stringify({ app: 'ani-gamer-history', dataVersion: '2.1.0', schemaVersion: 3, exportedAt: 1, history: { tester: [{ source: 'ani-gamer', id: '1', title: '未來版本的紀錄', timestamp: now, episode: '1', episodePicUrl: '', animePicUrl: '', videoWatchTime: 0, videoTotalTime: 1, note: '新欄位' }] } })
+    const newer = JSON.stringify({ app: 'ani-gamer-history', dataVersion: '2.2.0', schemaVersion: 3, exportedAt: 1, history: { tester: [{ source: 'ani-gamer', id: '1', title: '未來版本的紀錄', timestamp: now, episode: '1', episodePicUrl: '', animePicUrl: '', videoWatchTime: 0, videoTotalTime: 1, note: '新欄位' }] } })
     E.gmValues.set(HISTORY_KEY, newer)
     E.gmValues.set('syncSettings', { adapterId: 'github-repo', autoSync: true, adapters: { 'github-repo': { token: 'good-token', repository: 'me/data' } } })
     const responses = github.responses.length
     const tab = await openPage(E, '/')
-    await tab.locator('#watched-anime .agh-empty', { hasText: '資料版本 2.1.0' }).waitFor()
+    await tab.locator('#watched-anime .agh-empty', { hasText: '資料版本 2.2.0' }).waitFor()
     assert.equal(await tab.locator('#watched-anime .agh-empty a').textContent(), '請更新腳本')
     assert.equal(await tab.locator('#watched-anime .continue-watch-card').count(), 0)
     assert.equal(await tab.locator('.agh-sync-indicator').textContent(), '無法使用請更新腳本')

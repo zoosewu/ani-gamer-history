@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import { filter, map, of, Subscription } from 'rxjs'
 import fp from 'lodash/fp'
@@ -14,6 +14,7 @@ import { openSettings } from '../settings/openSettings'
 import { SyncIndicator } from '../settings/SyncIndicator'
 import { UpdateScriptLink } from '../settings/UpdateScriptLink'
 import { describeLock } from '../redux/storageSlice'
+import { NoteDialog } from './NoteDialog'
 import { requestCloudSync } from '@/sync/syncService'
 import './HomeIndex.css'
 
@@ -34,7 +35,8 @@ interface AnimeCardPayload {
 
 const AnimeCard = ({ bucket, anime }: AnimeCardPayload): JSX.Element => {
   const dispatch = useAppDispatch()
-  const { title, episodePicUrl, animePicUrl, episode, videoWatchTime, videoTotalTime, isFavorite } = anime
+  const [editingNote, setEditingNote] = useState(false)
+  const { title, episodePicUrl, animePicUrl, episode, videoWatchTime, videoTotalTime, isFavorite, note } = anime
   const source = sourceOf(anime)
   const href = animeUrl(anime)
   const hasImage = animePicUrl !== '' || episodePicUrl !== ''
@@ -57,6 +59,15 @@ const AnimeCard = ({ bucket, anime }: AnimeCardPayload): JSX.Element => {
             : <div className='agh-placeholder'><span>{title}</span></div>}
           {source !== 'ani-gamer' && <span className='agh-source-badge'>{sourceLabel(source)}</span>}
           <a className='line-gradient' style={{ pointerEvents: 'auto' }} href={href} />
+          <i
+            className={`agh-note-btn material-icons-round${(note ?? '') === '' ? '' : ' has-note'}`}
+            title={(note ?? '') === '' ? '新增備註' : note}
+            role='button'
+            aria-label={`${title} 的備註`}
+            style={{ pointerEvents: 'auto' }}
+            onClick={(event) => { event.stopPropagation(); setEditingNote(true) }}
+          >edit_note
+          </i>
           <i className='btn-delete material-icons-round' data-gtm-category='首頁' data-gtm-event='點擊移除繼續觀看卡片' style={{ pointerEvents: 'auto' }} onClick={() => dispatch(removeAnime(target))}>close</i>
           <div
             className={'btn-card-block btn-favorite btn-not-active' + (isFavorite ?? false ? ' btn-is-active' : '')}
@@ -97,6 +108,7 @@ const AnimeCard = ({ bucket, anime }: AnimeCardPayload): JSX.Element => {
           </p>
         </div>
       </a>
+      {editingNote && <NoteDialog bucket={bucket} anime={anime} onClosed={() => setEditingNote(false)} />}
     </div>
   )
 }
@@ -106,14 +118,21 @@ interface MainContainerPayload {
   userId: string | null
 }
 
+// 關鍵字比對標題與備註，忽略大小寫
+const matchesKeyword = (anime: Anime, keyword: string): boolean =>
+  keyword === '' || `${anime.title}\n${anime.note ?? ''}`.toLowerCase().includes(keyword)
+
 const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
+  const [search, setSearch] = useState('')
   const animeHistory = useAppSelector((state) => state.animeHistory)
   const preferences = useAppSelector((state) => state.preferences)
   const lockedBy = useAppSelector((state) => state.storage.lockedBy)
   const buckets = userId === null ? [SHARED_BUCKET] : [userId, SHARED_BUCKET]
   const entries = buckets.flatMap((bucket) => (animeHistory[bucket] ?? []).map((anime) => ({ bucket, anime })))
-  // 使用者可以在設定裡隱藏某些網站的紀錄
-  const visible = entries.filter(({ anime }) => !isRemoved(anime) && isSourceVisible(preferences, sourceOf(anime)))
+  // 使用者可以在設定裡隱藏某些網站的紀錄，再加上搜尋欄的關鍵字
+  const keyword = search.trim().toLowerCase()
+  const visible = entries.filter(({ anime }) =>
+    !isRemoved(anime) && isSourceVisible(preferences, sourceOf(anime)) && matchesKeyword(anime, keyword))
   const byTime = (a: AnimeCardPayload, b: AnimeCardPayload): number => b.anime.timestamp - a.anime.timestamp
   const sorted = [
     ...visible.filter(({ anime }) => anime.isFavorite === true).sort(byTime),
@@ -129,6 +148,14 @@ const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
         <div className='watch-more-block'>
           <h1 className='theme-title'>本機歷史紀錄</h1>
           <div className='agh-title-tools'>
+            <input
+              type='search'
+              className='agh-search'
+              value={search}
+              aria-label='搜尋標題或備註'
+              placeholder='搜尋標題或備註'
+              onChange={(event) => setSearch(event.target.value)}
+            />
             <button type='button' className='agh-gear' title='同步設定' aria-label='同步設定' onClick={() => openSettings()}>
               <i className='material-icons-round'>settings</i>
             </button>
@@ -137,7 +164,7 @@ const MainContainer = ({ userId }: MainContainerPayload): JSX.Element => {
         </div>
       </div>
       {lockedBy !== null && <p className='agh-empty'>{describeLock(lockedBy)}<UpdateScriptLink /></p>}
-      {lockedBy === null && sorted.length === 0 && <p className='agh-empty'>尚無紀錄</p>}
+      {lockedBy === null && sorted.length === 0 && <p className='agh-empty'>{keyword === '' ? '尚無紀錄' : '找不到符合的紀錄'}</p>}
       {lockedBy === null && (
         <div
           id='continue-watch'

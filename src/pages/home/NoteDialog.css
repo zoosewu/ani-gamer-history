@@ -1,0 +1,49 @@
+/* 備註視窗：比設定 dialog 小，高度依內容。
+   用 dialog.agh-note-dialog 提高 specificity，不必依賴 CSS 的載入順序就能蓋過 .agh-dialog 的固定高度 */
+dialog.agh-note-dialog {
+  width: min(520px, calc(100vw - 32px));
+  /* modal dialog 的上下由瀏覽器固定，height: auto 會被拉滿到 max-height，要用 fit-content 才會依內容縮放 */
+  height: fit-content;
+  max-height: min(480px, calc(100vh - 32px));
+}
+
+.agh-note-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 內容不要撐開，按鈕直接接在說明文字下方 */
+dialog.agh-note-dialog .agh-page {
+  flex: none;
+}
+
+/* 標題可能很長，讓它換行而不是撐破視窗 */
+.agh-note-dialog .agh-title {
+  overflow-wrap: anywhere;
+}
+
+.agh-note-dialog .agh-page {
+  padding-bottom: 16px;
+}
+
+.agh-note-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--agh-border);
+  border-radius: 8px;
+  background: var(--agh-bg);
+  color: var(--agh-text);
+  font: inherit;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.agh-note-input:focus-visible {
+  border-color: var(--agh-primary);
+  outline: 2px solid var(--agh-primary);
+  outline-offset: -1px;
+}
+
+.agh-note-dialog .agh-actions-end {
+  padding: 0 24px 20px;
+}

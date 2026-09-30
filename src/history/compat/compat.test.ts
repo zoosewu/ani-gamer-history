@@ -6,6 +6,7 @@ import { animeKey } from '../source'
 import { bucketOf, currentFixture, fullAnime } from './fixtures'
 import { loadReleases, ReleasedHistory } from './releases'
 import { v1 } from './v1'
+import { v2 } from './v2'
 
 // 已發佈版本與目前程式碼的相容性測試，規則見 docs/schema-version.md
 
@@ -17,7 +18,7 @@ interface FrozenFixture {
 }
 
 // 每個舊的 MAJOR.MINOR 一份凍結的測試資料；調資料版本時要為舊版本加一份
-const frozenFixtures: FrozenFixture[] = [v1]
+const frozenFixtures: FrozenFixture[] = [v1, v2]
 
 const minorKey = ({ major, minor }: DataVersion): string => `${major}.${minor}`
 const compareMinor = (a: DataVersion, b: DataVersion): number => a.major !== b.major ? a.major - b.major : a.minor - b.minor
