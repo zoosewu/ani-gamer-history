@@ -3,7 +3,7 @@
   "version": "0.10.0",
   "description": "把巴哈姆特動畫瘋的觀看紀錄永久存在電腦中，並可透過 GitHub Private Repository 在多台電腦之間同步",
   "author": "zoosewu",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/zoosewu/ani-gamer-history.git"
