@@ -8,15 +8,11 @@
     "en": "Sync settings: keep the history in sync across computers through a private GitHub repository"
   },
   "03-settings-features": {
-    "zh-TW": "功能設定：各別開關上次觀看標記與首頁清單要顯示的來源",
-    "en": "Feature settings: toggle the last-watched markers and which sources appear in the list"
+    "zh-TW": "功能設定：可以關閉分集清單上的上次觀看標記",
+    "en": "Feature settings: the last-watched markers can be turned off per site"
   },
   "04-episode-bookmark": {
     "zh-TW": "分集清單上的書籤標出本機紀錄看到的那一集",
     "en": "A bookmark on the episode list marks the episode kept in the local history"
-  },
-  "05-anime1-marker": {
-    "zh-TW": "anime1 的列表也會標出上次看到的集數與時間",
-    "en": "The same last-watched marker also appears on anime1 listings"
   }
 }

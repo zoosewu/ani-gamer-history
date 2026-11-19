@@ -1,5 +1,5 @@
 // 產生作品集用的截圖（docs/screenshots/）：1280 × 800、16:10。
-// 在動畫瘋與 anime1 的真實頁面上跑 build 出來的 userscript，資料全部是示範資料。
+// 在動畫瘋的真實頁面上跑 build 出來的 userscript，資料全部是示範資料。
 // 用法：npm run build && npm run screenshots
 import { chromium } from 'playwright'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -7,7 +7,6 @@ import assert from 'node:assert/strict'
 
 const DIST = new URL('../dist/ani-gamer-history.user.js', import.meta.url)
 const OUT = new URL('../docs/screenshots/', import.meta.url).pathname
-const ANIME1_CATEGORY = new URL('./fixtures/anime1/category.html', import.meta.url)
 
 const VIEWPORT = { width: 1280, height: 800 }
 // 示範用的使用者 id，不使用真實帳號
@@ -21,7 +20,6 @@ const libs = await Promise.all(requires.map(async (url) => {
   assert.equal(response.status, 200, url)
   return await response.text()
 }))
-const anime1Category = (await readFile(ANIME1_CATEGORY, 'utf8')).replace(/<script\b[\s\S]*?<\/script>/gi, '')
 
 // 腳本只會用到 GM storage，其餘 API 給最小替身；雲端同步在截圖時不會真的連線
 const gmStubs = (initial) => {
@@ -58,8 +56,6 @@ const BLOCKED = /doubleclick|googlesyndication|google-analytics|googletagmanager
 await context.route('**/*', async (route) => {
   const url = route.request().url()
   if (BLOCKED.test(url)) return await route.abort()
-  // anime1 的頁面用 repo 裡的樣本，樣式仍由真實網站提供
-  if (/^https:\/\/anime1\.me\/(category|\?cat=)/.test(url)) return await route.fulfill({ contentType: 'text/html', body: anime1Category })
   return await route.continue()
 })
 
@@ -166,20 +162,7 @@ try {
     videoTotalTime: 1420,
     ...(index === 1 ? { isFavorite: true, favoriteTime: now } : {})
   }))
-  // anime1 的紀錄不綁使用者，首頁會用文字佔位卡片顯示
-  const shared = [{
-    source: 'anime1',
-    id: '30152',
-    title: 'LIAR GAME 詐欺遊戲',
-    seriesId: '1898',
-    timestamp: now - 2 * 36e5,
-    episode: '24',
-    episodePicUrl: '',
-    animePicUrl: '',
-    videoWatchTime: 720,
-    videoTotalTime: 1440
-  }]
-  const demoHistory = history({ [DEMO_USER]: watched, '@shared': shared })
+  const demoHistory = history({ [DEMO_USER]: watched })
   const demoSeed = {
     history: demoHistory,
     syncSettings: { adapterId: 'github-repo', autoSync: true, adapters: { 'github-repo': { token: 'demo', repository: 'demo/anime-history' } } },
@@ -226,23 +209,11 @@ try {
   await snapshot(video, '04-episode-bookmark')
   await video.close()
 
-  // ---------- 05 anime1 的上次觀看標記 ----------
-  const anime1 = await openPage('https://anime1.me/category/liar-game', demoSeed)
-  await anime1.locator('.entry-header.agh-bookmarked').first().waitFor({ timeout: 15000 })
-  await hideOverlays(anime1)
-  await anime1.evaluate(() => {
-    const marked = document.querySelector('.entry-header.agh-bookmarked')
-    window.scrollTo({ top: marked.getBoundingClientRect().top + window.scrollY - 80 })
-  })
-  await snapshot(anime1, '05-anime1-marker')
-  await anime1.close()
-
   await writeFile(`${OUT}captions.json`, `${JSON.stringify({
     '01-home-history': { 'zh-TW': '動畫瘋首頁下方的本機歷史紀錄，依時間排序並可加入最愛', en: 'Local watch history added below the Bahamut Anime home page, sorted by time with favorites pinned' },
     '02-settings-sync': { 'zh-TW': '同步設定：透過 GitHub Private Repository 在多台電腦之間同步', en: 'Sync settings: keep the history in sync across computers through a private GitHub repository' },
-    '03-settings-features': { 'zh-TW': '功能設定：各別開關上次觀看標記與首頁清單要顯示的來源', en: 'Feature settings: toggle the last-watched markers and which sources appear in the list' },
-    '04-episode-bookmark': { 'zh-TW': '分集清單上的書籤標出本機紀錄看到的那一集', en: 'A bookmark on the episode list marks the episode kept in the local history' },
-    '05-anime1-marker': { 'zh-TW': 'anime1 的列表也會標出上次看到的集數與時間', en: 'The same last-watched marker also appears on anime1 listings' }
+    '03-settings-features': { 'zh-TW': '功能設定：可以關閉分集清單上的上次觀看標記', en: 'Feature settings: the last-watched markers can be turned off per site' },
+    '04-episode-bookmark': { 'zh-TW': '分集清單上的書籤標出本機紀錄看到的那一集', en: 'A bookmark on the episode list marks the episode kept in the local history' }
   }, null, 2)}\n`, 'utf8')
   console.log('  captions.json')
   console.log('完成')
