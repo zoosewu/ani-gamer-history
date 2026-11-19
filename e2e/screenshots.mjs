@@ -83,7 +83,7 @@ const openPage = async (url, seed = {}, beforeScript) => {
 const hideOverlays = async (page) => await page.evaluate(() => {
   document.querySelectorAll('iframe, ins, .anime-ad, [id^="div-gpt"], [id*="ad_"], [class*="ad-slot"]').forEach((element) => element.remove())
   document.querySelectorAll('body *').forEach((element) => {
-    const style = getComputedStyle(element)
+    const style = window.getComputedStyle(element)
     if (style.position !== 'fixed' && style.position !== 'sticky') return
     const box = element.getBoundingClientRect()
     if (box.height > 0 && box.width > 0) element.style.display = 'none'
@@ -97,7 +97,7 @@ const toWebp = async (png) => {
   const page = await context.newPage()
   await page.goto('about:blank')
   const dataUrl = await page.evaluate(async (base64) => {
-    const image = new Image()
+    const image = new window.Image()
     image.src = `data:image/png;base64,${base64}`
     await image.decode()
     const canvas = document.createElement('canvas')
@@ -143,7 +143,7 @@ try {
       // 卡片裡第一張圖是時鐘圖示，封面要用圖庫網域上的那張
       const image = card.querySelector('img[data-src*="p2.bahamut.com.tw"], img[src*="p2.bahamut.com.tw"]')
       const src = image?.getAttribute('data-src') ?? image?.getAttribute('src') ?? ''
-      const sn = new URL(card.href, location.origin).searchParams.get('sn')
+      const sn = new URL(card.href, window.location.origin).searchParams.get('sn')
       return { sn, title, animePicUrl: src.startsWith('//') ? `https:${src}` : src }
     })
     .filter((item) => !/^第\s*\d+\s*集$/.test(item.title))
