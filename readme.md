@@ -46,6 +46,7 @@ npm run dev    # 開發模式
 npm test       # 單元測試
 npm run build  # 產生 dist/ani-gamer-history.user.js
 npm run test:e2e  # 端對端測試（先 build；第一次請執行 npx playwright install chromium）
+npm run screenshots  # 產生作品集用的截圖到 docs/screenshots/（先 build）
 ```
 測試會從 git tag 取出已發佈的版本檢查資料相容性，clone 後請先執行 `git fetch --tags`。
 
