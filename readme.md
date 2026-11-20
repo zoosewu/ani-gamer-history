@@ -69,3 +69,5 @@ PR 請用 **Squash merge** 合併。一個 PR 可以包含多個 commit：開 PR
 - [X] 設定頁面（同步設定）
 - [X] 設定頁面可以啟用/關閉相關功能
 - [ ] 其他同步平台
+# 授權
+程式碼以 [GNU AGPL-3.0](LICENSE) 授權。執行時由 CDN 載入的 React、rxjs、lodash 依其各自的授權。
