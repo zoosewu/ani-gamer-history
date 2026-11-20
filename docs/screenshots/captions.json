@@ -1,0 +1,18 @@
+{
+  "01-home-history": {
+    "zh-TW": "動畫瘋首頁下方的本機歷史紀錄，依時間排序並可加入最愛",
+    "en": "Local watch history added below the Bahamut Anime home page, sorted by time with favorites pinned"
+  },
+  "02-settings-sync": {
+    "zh-TW": "同步設定：透過 GitHub Private Repository 在多台電腦之間同步",
+    "en": "Sync settings: keep the history in sync across computers through a private GitHub repository"
+  },
+  "03-settings-features": {
+    "zh-TW": "功能設定：可以關閉分集清單上的上次觀看標記",
+    "en": "Feature settings: the last-watched markers can be turned off per site"
+  },
+  "04-episode-bookmark": {
+    "zh-TW": "分集清單上的書籤標出本機紀錄看到的那一集",
+    "en": "A bookmark on the episode list marks the episode kept in the local history"
+  }
+}

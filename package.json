@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "lint": "ts-standard",
     "test": "vitest run",
-    "test:e2e": "node e2e/run.mjs"
+    "test:e2e": "node e2e/run.mjs",
+    "screenshots": "node e2e/screenshots.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.2.7",

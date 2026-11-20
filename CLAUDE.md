@@ -2,6 +2,13 @@
 
 修改 `src/history/` 的資料格式、合併規則，或新增網站來源之前，先讀 `docs/schema-version.md`，依「調資料版本的規則」決定 `DATA_VERSION`（MAJOR.MINOR.PATCH）要調哪一層，並照「調資料版本的步驟」補上升級轉換與凍結的測試資料。
 
+## 作品集（apex-code）
+
+本專案列在 zoosewu 的作品集：https://zoosewu.github.io/apex-code/
+- 截圖：依 https://github.com/zoosewu/apex-code/blob/main/docs/SCREENSHOTS.md 放在 `docs/screenshots/`；
+  介面有明顯改變時一併更新截圖與 captions.json（`npm run build && npm run screenshots` 會重新產生）
+- 要顯示「作者的其他專案」時：依 https://github.com/zoosewu/apex-code/blob/main/docs/API.md 讀取 API，不要把清單寫死在本專案
+
 # Task Master AI - Claude Code Integration Guide
 
 ## Essential Commands
