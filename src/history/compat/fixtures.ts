@@ -24,7 +24,9 @@ export const fullAnime: { [S in AnimeSource]: Required<Anime> & { source: S } } 
     seriesId: '112233',
     isFavorite: true,
     favoriteTime: 1788000000000,
-    removeTime: 1787000000000
+    removeTime: 1787000000000,
+    note: '第 1 季最後三集最精彩，\n魔法戰鬥的作畫很誇張',
+    noteTime: 1788500000000
   },
   anime1: {
     source: 'anime1',
@@ -39,7 +41,9 @@ export const fullAnime: { [S in AnimeSource]: Required<Anime> & { source: S } } 
     seriesId: '1959',
     isFavorite: true,
     favoriteTime: 1789000000001,
-    removeTime: 1789000000002
+    removeTime: 1789000000002,
+    note: 'anime1 的備註：看到第 5 集',
+    noteTime: 1789600000000
   }
 }
 

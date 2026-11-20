@@ -21,6 +21,8 @@ interface AnimeTitlePayload {
 
 type TimedPayload = AnimeTitlePayload & { time: number }
 
+type NotePayload = AnimeTitlePayload & { note: string }
+
 const withTime = (payload: AnimeTitlePayload): { payload: TimedPayload } => ({ payload: { ...payload, time: Date.now() } })
 
 const updateAnime = (state: AnimeHistory, { userId, animeTitle, source }: AnimeTitlePayload, update: (anime: Anime) => Anime): void => {
@@ -48,6 +50,8 @@ export const animeHistorySlice = createSlice({
         ...anime,
         isFavorite: existing?.isFavorite,
         favoriteTime: existing?.favoriteTime,
+        note: existing?.note,
+        noteTime: existing?.noteTime,
         removeTime: existing?.removeTime
       })
       state[userId] = [record, ...list.filter((item) => !isSame(item))]
@@ -65,6 +69,13 @@ export const animeHistorySlice = createSlice({
       },
       prepare: withTime
     },
+    // 備註：空字串代表刪除，一樣要記下時間才能同步出去
+    noteSet: {
+      reducer: (state, action: PayloadAction<NotePayload & { time: number }>) => {
+        updateAnime(state, action.payload, (anime) => ({ ...anime, note: action.payload.note, noteTime: action.payload.time }))
+      },
+      prepare: (payload: NotePayload) => ({ payload: { ...payload, time: Date.now() } })
+    },
     // 合併其他分頁、雲端或匯入的資料；內容沒變時維持原本的 state
     mergeHistory: (state, action: PayloadAction<AnimeHistory>) => {
       const base = current(state)
@@ -75,6 +86,6 @@ export const animeHistorySlice = createSlice({
   }
 })
 
-export const { recordWatch, removeAnime, toggleFavorite, mergeHistory } = animeHistorySlice.actions
+export const { recordWatch, removeAnime, toggleFavorite, noteSet, mergeHistory } = animeHistorySlice.actions
 
 export default animeHistorySlice.reducer

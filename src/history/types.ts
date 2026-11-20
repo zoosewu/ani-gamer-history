@@ -16,6 +16,10 @@ export interface Anime {
   removeTime?: number
   isFavorite?: boolean
   favoriteTime?: number
+  // 使用者寫的備註（心得），和最愛一樣會同步
+  note?: string
+  // 備註的最後編輯時間，用來解決兩台電腦同時編輯的衝突
+  noteTime?: number
 }
 
 export interface AnimeHistory {
@@ -27,7 +31,7 @@ export const SHARED_BUCKET = '@shared'
 
 export const SNAPSHOT_APP = 'ani-gamer-history'
 // 資料版本（語意化版號），和腳本版本無關；資料格式或合併規則一有變動就要調，規則見 docs/schema-version.md
-export const DATA_VERSION = '2.0.0'
+export const DATA_VERSION = '2.1.0'
 
 // 雲端檔案、匯出的 JSON、本機儲存都是這個格式
 export interface HistorySnapshot {

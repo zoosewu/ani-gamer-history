@@ -62,9 +62,9 @@ describe('readLocalSnapshot', () => {
   })
 
   it('本機資料由較新版本建立時鎖定：不讀取紀錄，也不動舊欄位', () => {
-    const newer = { app: SNAPSHOT_APP, dataVersion: '2.1.0', schemaVersion: 3, exportedAt: 1, history: { '@shared': [anime()] } }
+    const newer = { app: SNAPSHOT_APP, dataVersion: '2.2.0', schemaVersion: 3, exportedAt: 1, history: { '@shared': [anime()] } }
     const local = readLocalSnapshot(storage({ [LOCAL_HISTORY_KEY]: newer, animeHistory: { '@shared': [anime()] } }))
-    expect(local).toEqual({ history: {}, lockedBy: '2.1.0', legacyKeys: [], changed: false })
+    expect(local).toEqual({ history: {}, lockedBy: '2.2.0', legacyKeys: [], changed: false })
   })
 
   it('新欄位無法解析時視為空的，舊欄位照常讀出', () => {

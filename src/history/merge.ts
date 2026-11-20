@@ -40,6 +40,14 @@ export const normalizeAnime = (anime: Anime): Anime => {
   } else if (anime.isFavorite === true) {
     normalized.isFavorite = true
   }
+  const noteTime = finite(anime.noteTime)
+  if (noteTime > 0) {
+    // 空字串代表刪除備註，要保留下來才能同步刪除
+    normalized.note = text(anime.note)
+    normalized.noteTime = noteTime
+  } else if (text(anime.note) !== '') {
+    normalized.note = text(anime.note)
+  }
   if (anime.removeTime != null && Number.isFinite(anime.removeTime)) {
     normalized.removeTime = anime.removeTime
   }
@@ -61,6 +69,14 @@ const pickFavorite = (a: Anime, b: Anime): Anime => {
   return a.isFavorite === true ? a : b
 }
 
+// 和最愛一樣取 (noteTime, note) 字典序較大者，確保交換律與結合律
+const pickNote = (a: Anime, b: Anime): Anime => {
+  const aTime = a.noteTime ?? 0
+  const bTime = b.noteTime ?? 0
+  if (aTime !== bTime) return aTime > bTime ? a : b
+  return text(a.note) >= text(b.note) ? a : b
+}
+
 const maxRemoveTime = (a: Anime, b: Anime): number | undefined => {
   if (a.removeTime == null) return b.removeTime
   if (b.removeTime == null) return a.removeTime
@@ -72,12 +88,15 @@ export const mergeAnime = (left: Anime, right: Anime): Anime => {
   const b = normalizeAnime(right)
   const progress = pickProgress(a, b)
   const favorite = pickFavorite(a, b)
+  const note = pickNote(a, b)
   return normalizeAnime({
     ...progress,
     // 另一邊可能是較舊、還沒有 seriesId 的紀錄
     seriesId: progress.seriesId ?? a.seriesId ?? b.seriesId,
     isFavorite: favorite.isFavorite,
     favoriteTime: favorite.favoriteTime,
+    note: note.note,
+    noteTime: note.noteTime,
     removeTime: maxRemoveTime(a, b)
   })
 }
