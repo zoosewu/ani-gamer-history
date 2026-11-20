@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.0](https://github.com/zoosewu/ani-gamer-history/compare/0.10.0...0.11.0) (2026-11-20)
+
+
+### 新增功能
+
+* **home:** add per-anime notes and a search box ([546b263](https://github.com/zoosewu/ani-gamer-history/commit/546b263685cf29a9dd2a2ec72a2c445657efb46e))
+
+
+### 問題修正
+
+* **e2e:** keep the screenshot script lint clean ([c1af180](https://github.com/zoosewu/ani-gamer-history/commit/c1af180c02670bbeecc8ed926a168772a22261c0))
+
 ## [0.10.0](https://github.com/zoosewu/ani-gamer-history/compare/0.9.0...0.10.0) (2026-09-18)
 
 
