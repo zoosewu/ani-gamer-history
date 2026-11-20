@@ -160,7 +160,9 @@ try {
     animePicUrl: item.animePicUrl,
     videoWatchTime: 300 + index * 120,
     videoTotalTime: 1420,
-    ...(index === 1 ? { isFavorite: true, favoriteTime: now } : {})
+    ...(index === 1 ? { isFavorite: true, favoriteTime: now } : {}),
+    // 其中一筆寫了備註，卡片上才看得到備註圖示
+    ...(index === 2 ? { note: '第 8 集的對決很精彩，之後要重看一次', noteTime: now } : {})
   }))
   const demoHistory = history({ [DEMO_USER]: watched })
   const demoSeed = {
